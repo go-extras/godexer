@@ -1,0 +1,6 @@
+.idea
+example/ssh/ssh.exe
+example/ssh/ssh
+example/ssh/privatersa.key
+*.bat
+example/ssh/vars_*.yaml
