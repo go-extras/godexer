@@ -26,7 +26,9 @@ func fakeExecCommand(command string, args ...string) *exec.Cmd {
 	cs = append(cs, args...)
 	//nolint:gosec // This is a test helper that intentionally uses os.Args[0]
 	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
+	// Set GO_WANT_HELPER_PROCESS and GOCOVERDIR (to suppress coverage warnings when running with -race flag)
+	// Note: Additional env vars (like DUMMY) will be appended by ExecCommand.Execute
+	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1", "GOCOVERDIR=" + os.TempDir()}
 	return cmd
 }
 
