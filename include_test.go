@@ -2,7 +2,6 @@ package executor_test
 
 import (
 	"bytes"
-	"io/fs"
 	"testing"
 	"testing/fstest"
 
@@ -15,7 +14,6 @@ import (
 )
 
 type IncludeTestSuite struct {
-	backupScripts fs.ReadFileFS
 	suite.Suite
 }
 

@@ -46,7 +46,7 @@ type ExecCommand struct {
 	Delay    int // seconds
 }
 
-func NewSshExecCommand(sshClient *ssh.Client, stdout, stderr io.Writer) func(ectx *executor.ExecutorContext) executor.Command {
+func NewSSHExecCommand(sshClient *ssh.Client, stdout, stderr io.Writer) func(ectx *executor.ExecutorContext) executor.Command {
 	return func(ectx *executor.ExecutorContext) executor.Command {
 		return &ExecCommand{
 			sshClient: sshClient,
@@ -64,32 +64,69 @@ func (r *ExecCommand) Execute(variables map[string]any) error {
 		return errors.Errorf("this command must be run from the executor")
 	}
 
+	cmd, err := r.prepareCommand(variables)
+	if err != nil {
+		return err
+	}
+
+	r.printCommand(cmd, variables)
+
+	session, err := r.createSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	var buf executor.Buffer
+	r.setupSessionIO(session, &buf)
+
+	if err := r.setEnvironment(session, variables); err != nil {
+		return err
+	}
+
+	err = r.runCommand(session, cmd, &buf, variables)
+	if err == nil {
+		return nil
+	}
+
+	return r.handleError(err, variables)
+}
+
+func (r *ExecCommand) prepareCommand(variables map[string]any) (string, error) {
 	var cmds []string
 	for _, v := range r.Cmd {
 		cmds = append(cmds, executor.MaybeEvalValue(v, variables).(string))
 	}
 
 	cmd := escapeArgs(cmds)
-
 	if len(cmd) == 0 {
-		return errors.Errorf("command %q is empty", r.StepName)
+		return "", errors.Errorf("command %q is empty", r.StepName)
 	}
 
+	return cmd, nil
+}
+
+func (r *ExecCommand) printCommand(cmd string, variables map[string]any) {
+	addr := r.sshClient.RemoteAddr().String()
 	switch r.CmdRedact {
 	case "":
-		fmt.Fprintf(r.stdout, "%s$ %s\n", r.sshClient.RemoteAddr().String(), cmd)
+		fmt.Fprintf(r.stdout, "%s$ %s\n", addr, cmd)
 	case "-":
-		fmt.Fprintf(r.stdout, "%s$ %s\n", r.sshClient.RemoteAddr().String(), "[command redacted]")
+		fmt.Fprintf(r.stdout, "%s$ %s\n", addr, "[command redacted]")
 	default:
-		cmdRedact := executor.MaybeEvalValue(r.CmdRedact, variables).(string)
-		fmt.Fprintf(r.stdout, "%s$ %s\n", r.sshClient.RemoteAddr().String(), cmdRedact)
+		cmdRedact, ok := executor.MaybeEvalValue(r.CmdRedact, variables).(string)
+		if !ok {
+			cmdRedact = "[invalid redact value]"
+		}
+		fmt.Fprintf(r.stdout, "%s$ %s\n", addr, cmdRedact)
 	}
+}
 
+func (r *ExecCommand) createSession() (*ssh.Session, error) {
 	session, err := r.sshClient.NewSession()
 	if err != nil {
-		return errors.Wrap(err, "unable to get ssh session")
+		return nil, errors.Wrap(err, "unable to get ssh session")
 	}
-	defer session.Close()
 
 	modes := ssh.TerminalModes{
 		ssh.ECHO:          1,     // disable echoing
@@ -97,57 +134,64 @@ func (r *ExecCommand) Execute(variables map[string]any) error {
 		ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 	}
 
-	err = session.RequestPty("xterm", 80, 40, modes)
-	if err != nil {
-		return errors.Wrap(err, "failed to request pty")
+	if err := session.RequestPty("xterm", 80, 40, modes); err != nil {
+		return nil, errors.Wrap(err, "failed to request pty")
 	}
 
-	var buf executor.Buffer
+	return session, nil
+}
+
+func (r *ExecCommand) setupSessionIO(session *ssh.Session, buf *executor.Buffer) {
 	if r.Variable == "" {
 		session.Stdout = r.Ectx.Stdout
 		session.Stderr = r.Ectx.Stderr
 	} else {
-		session.Stdout = executor.NewCombinedWriter([]io.Writer{
-			r.Ectx.Stdout,
-			&buf,
-		})
-		session.Stderr = executor.NewCombinedWriter([]io.Writer{
-			r.Ectx.Stderr,
-			&buf,
-		})
+		session.Stdout = executor.NewCombinedWriter([]io.Writer{r.Ectx.Stdout, buf})
+		session.Stderr = executor.NewCombinedWriter([]io.Writer{r.Ectx.Stderr, buf})
+	}
+}
+
+func (r *ExecCommand) setEnvironment(session *ssh.Session, variables map[string]any) error {
+	if r.Env == nil {
+		return nil
 	}
 
-	if r.Env != nil {
-		for k, v := range r.Env {
-			if err := session.Setenv(k, executor.MaybeEvalValue(v, variables).(string)); err != nil {
-				return errors.Wrap(err, "failed to set ssh environment variable")
-			}
+	for k, v := range r.Env {
+		if err := session.Setenv(k, executor.MaybeEvalValue(v, variables).(string)); err != nil {
+			return errors.Wrap(err, "failed to set ssh environment variable")
 		}
 	}
+	return nil
+}
 
-	err = session.Start(cmd)
-	if err != nil {
+func (r *ExecCommand) runCommand(session *ssh.Session, cmd string, buf *executor.Buffer, variables map[string]any) error {
+	if err := session.Start(cmd); err != nil {
 		return err
 	}
-	err = session.Wait()
+
+	err := session.Wait()
 
 	if r.Variable != "" {
 		variables[r.Variable] = buf.String()
 	}
 
 	if r.AllowFail {
-		if exitError, ok := err.(*ssh.ExitError); ok {
-			err = nil
-			variables[r.StepName+"_exit_status"] = exitError.ExitStatus()
-		} else {
-			variables[r.StepName+"_exit_status"] = 0
-		}
-	}
-
-	if err == nil {
+		r.handleAllowFail(err, variables)
 		return nil
 	}
 
+	return err
+}
+
+func (r *ExecCommand) handleAllowFail(err error, variables map[string]any) {
+	if exitError, ok := err.(*ssh.ExitError); ok {
+		variables[r.StepName+"_exit_status"] = exitError.ExitStatus()
+	} else {
+		variables[r.StepName+"_exit_status"] = 0
+	}
+}
+
+func (r *ExecCommand) handleError(err error, variables map[string]any) error {
 	r.Ectx.Logger.Infof("Got an error and attepts = %d", r.Attempts)
 
 	if r.OnEachFailure != nil {
@@ -167,7 +211,7 @@ func (r *ExecCommand) Execute(variables map[string]any) error {
 		r.Attempts--
 		r.Ectx.Logger.Infof("Got execution failure, will retry (attempts left %d)", r.Attempts)
 		TimeSleep(time.Duration(r.Delay) * time.Second)
-		err = r.Execute(variables)
+		return r.Execute(variables)
 	}
 
 	return err

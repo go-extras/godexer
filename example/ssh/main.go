@@ -6,7 +6,7 @@ package main
 import (
 	"encoding/pem"
 	"flag"
-	"fmt"
+	"log"
 	"net"
 	"os"
 	"strings"
@@ -24,9 +24,8 @@ func fileExists(fs afero.Fs, fname string) (bool, error) {
 	if _, err := fs.Stat(fname); err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
-		} else {
-			return false, err
 		}
+		return false, err
 	}
 
 	return true, nil
@@ -147,13 +146,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	keys := make([]*Key, 1, 1)
+	keys := make([]*Key, 1)
 	keys[0] = &Key{
 		PrivateKey: keydata,
 		Password:   []byte(*keyPasswordPtr),
 	}
 
-	auth := make([]ssh.AuthMethod, 1, 1)
+	auth := make([]ssh.AuthMethod, 1)
 	authMethod, err := createKeyring(keys)
 	if err != nil {
 		panic(errors.Errorf("unable to choose authentication method: %v", err))
@@ -163,9 +162,10 @@ func main() {
 		panic(errors.New("missing user name"))
 	}
 	config := &ssh.ClientConfig{
-		User:            *sshUserPtr,
-		Auth:            auth,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // TODO: don't use for production?
+		User: *sshUserPtr,
+		Auth: auth,
+		//nolint:gosec // This is example code; production code should use proper host key verification
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
 	conn, err := ssh.Dial("tcp", net.JoinHostPort(*sshHostPtr, "22"), config)
@@ -174,7 +174,7 @@ func main() {
 	}
 	commands := executor.GetRegisteredCommands()
 	commands["scp_writefile"] = sshexec.NewScpWriterFileCommand(conn)
-	commands["ssh_exec"] = sshexec.NewSshExecCommand(conn, os.Stdout, os.Stderr)
+	commands["ssh_exec"] = sshexec.NewSSHExecCommand(conn, os.Stdout, os.Stderr)
 
 	exc, err := executor.NewWithScenario(
 		string(scriptCmds),
@@ -196,6 +196,6 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("No errors occured")
-	// fmt.Printf("Variable %q has a value %q\n", "output", vars["output"])
+	log.Println("No errors occured")
+	// log.Printf("Variable %q has a value %q\n", "output", vars["output"])
 }

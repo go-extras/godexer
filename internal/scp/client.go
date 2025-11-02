@@ -37,14 +37,14 @@ func NewClient(conn ssh.Conn, session *ssh.Session) *Client {
 }
 
 // CopyFromFile copies the contents of an os.File to a remote location, it will get the length of the file by looking it up from the filesystem
-func (a *Client) CopyFromFile(file os.File, remotePath string, permissions string) error {
+func (a *Client) CopyFromFile(file os.File, remotePath, permissions string) error {
 	stat, _ := file.Stat()
 	return a.Copy(&file, remotePath, permissions, stat.Size())
 }
 
 // CopyFile copies the contents of an io.Reader to a remote location, the length is determined by reading the io.Reader until EOF
 // if the file length in know in advance please use "Copy" instead
-func (a *Client) CopyFile(fileReader io.Reader, remotePath string, permissions string) error {
+func (a *Client) CopyFile(fileReader io.Reader, remotePath, permissions string) error {
 	contentsBytes, _ := io.ReadAll(fileReader)
 	bytesReader := bytes.NewReader(contentsBytes)
 
@@ -83,7 +83,7 @@ func checkResponse(r io.Reader) error {
 }
 
 // Copy copies the contents of an io.Reader to a remote location
-func (a *Client) Copy(r io.Reader, remotePath string, permissions string, size int64) error {
+func (a *Client) Copy(r io.Reader, remotePath, permissions string, size int64) error {
 	filename := path.Base(remotePath)
 
 	wg := sync.WaitGroup{}

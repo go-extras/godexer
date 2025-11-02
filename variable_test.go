@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/suite"
 
-	. "github.com/go-extras/godexer"
+	"github.com/go-extras/godexer"
 )
 
 type VariableTestSuite struct {
@@ -17,12 +17,12 @@ type VariableTestSuite struct {
 func (t *VariableTestSuite) TestExecute() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewVariableCommand(&ExecutorContext{
+	cmd := executor.NewVariableCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*VariableCommand)
+	ex := cmd.(*executor.VariableCommand)
 	ex.Variable = "foo"
 	ex.Value = "{{ index .  \"var1\" }}{{ index .  \"var2\" }}"
 
@@ -38,12 +38,12 @@ func (t *VariableTestSuite) TestExecute() {
 func (t *VariableTestSuite) TestExecute_Int() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewVariableCommand(&ExecutorContext{
+	cmd := executor.NewVariableCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*VariableCommand)
+	ex := cmd.(*executor.VariableCommand)
 	ex.Variable = "foo"
 	ex.Value = 1
 
@@ -59,12 +59,12 @@ func (t *VariableTestSuite) TestExecute_Int() {
 func (t *VariableTestSuite) TestExecute_Empty() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewVariableCommand(&ExecutorContext{
+	cmd := executor.NewVariableCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*VariableCommand)
+	ex := cmd.(*executor.VariableCommand)
 	ex.Variable = "foo"
 
 	m := map[string]any{
@@ -79,12 +79,12 @@ func (t *VariableTestSuite) TestExecute_Empty() {
 func (t *VariableTestSuite) TestExecute_NoVariable() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewVariableCommand(&ExecutorContext{
+	cmd := executor.NewVariableCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*VariableCommand)
+	ex := cmd.(*executor.VariableCommand)
 	ex.Value = "dummy"
 
 	m := map[string]any{

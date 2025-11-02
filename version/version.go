@@ -12,27 +12,27 @@ var (
 	ErrInvalidVersion  = errors.New("invalid version")
 )
 
-func parseArgs(args []any) (*version.Version, *version.Version, error) {
+func parseArgs(args []any) (v1, v2 *version.Version, err error) {
 	if len(args) != 2 {
 		return nil, nil, errors.New("invalid number of arguments")
 	}
-	v1, ok := args[0].(string)
+	s1, ok := args[0].(string)
 	if !ok {
 		return nil, nil, errors.Wrap(ErrArgMustBeString, "argument 1 must be string")
 	}
-	v2, ok := args[1].(string)
+	s2, ok := args[1].(string)
 	if !ok {
 		return nil, nil, errors.Wrap(ErrArgMustBeString, "argument 2 must be string")
 	}
-	vv1, err := version.NewVersion(v1)
+	v1, err = version.NewVersion(s1)
 	if err != nil {
 		return nil, nil, errors.Wrap(errors.WithEquivalents(err, ErrInvalidVersion), "argument 1 must be a valid version")
 	}
-	vv2, err := version.NewVersion(v2)
+	v2, err = version.NewVersion(s2)
 	if err != nil {
 		return nil, nil, errors.Wrap(errors.WithEquivalents(err, ErrInvalidVersion), "argument 2 must be a valid version")
 	}
-	return vv1, vv2, nil
+	return v1, v2, nil
 }
 
 // WithVersionFuncs registers value evaluator functions.

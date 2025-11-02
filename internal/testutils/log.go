@@ -8,7 +8,7 @@ import (
 
 type SimpleFormatter struct{}
 
-func (f *SimpleFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+func (*SimpleFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	var b *bytes.Buffer
 	if entry.Buffer != nil {
 		b = entry.Buffer

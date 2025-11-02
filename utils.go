@@ -23,18 +23,17 @@ func fileExists(fs afero.Fs, fname string) (bool, error) {
 	if _, err := fs.Stat(fname); err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
-		} else {
-			return false, err
 		}
+		return false, err
 	}
 
 	return true, nil
 }
 
-// toJson converts a single YAML document into a JSON document
+// toJSON converts a single YAML document into a JSON document
 // or returns an error. If the document appears to be JSON the
 // YAML decoding path is not used.
-func toJson(data []byte) ([]byte, error) {
+func toJSON(data []byte) ([]byte, error) {
 	if hasJSONPrefix(data) {
 		return data, nil
 	}
@@ -50,7 +49,7 @@ func hasJSONPrefix(buf []byte) bool {
 }
 
 // Return true if the first non-whitespace bytes in buf is prefix.
-func hasPrefix(buf []byte, prefix []byte) bool {
+func hasPrefix(buf, prefix []byte) bool {
 	trim := bytes.TrimLeftFunc(buf, unicode.IsSpace)
 	return bytes.HasPrefix(trim, prefix)
 }

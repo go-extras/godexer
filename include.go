@@ -59,7 +59,10 @@ func (r *IncludeCommand) Execute(variables map[string]any) error {
 		return errors.New("storage is nil")
 	}
 
-	filename := MaybeEvalValue(r.File, variables).(string)
+	filename, ok := MaybeEvalValue(r.File, variables).(string)
+	if !ok {
+		return errors.Errorf("filename in %q must be a string", r.StepName)
+	}
 	if r.basepath != "" && filename[0] != '/' {
 		filename = strings.TrimRight(r.basepath, "/") + "/" + filename
 	}
@@ -70,11 +73,13 @@ func (r *IncludeCommand) Execute(variables map[string]any) error {
 	}
 
 	cmds := &RawScenario{}
-	script, err = toJson(script)
+	script, err = toJSON(script)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse input %q in %q", filename, r.StepName)
 	}
-	err = json.Unmarshal(script, cmds)
+	if err = json.Unmarshal(script, cmds); err != nil {
+		return errors.Wrapf(err, "failed to unmarshal script %q in %q", filename, r.StepName)
+	}
 
 	r.RawCommands = cmds.Commands
 

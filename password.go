@@ -1,27 +1,31 @@
 package executor
 
 import (
-	"math/rand"
-	"time"
+	"crypto/rand"
+	"math/big"
 
 	"github.com/go-extras/errors"
 )
 
+//nolint:gochecknoinits // init is used for automatic command registration
 func init() {
-	rand.Seed(time.Now().UnixNano())
 	RegisterCommand("password", NewPassword)
 }
 
 const defaultCharset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-func randStringRunes(n int, letterRunes []rune, letterRunesLen int) string {
+func randStringRunes(n int, letterRunes []rune, letterRunesLen int) (string, error) {
 	b := make([]rune, n)
 
 	for i := range b {
-		b[i] = letterRunes[rand.Intn(letterRunesLen)]
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(letterRunesLen)))
+		if err != nil {
+			return "", err
+		}
+		b[i] = letterRunes[num.Int64()]
 	}
 
-	return string(b)
+	return string(b), nil
 }
 
 type PasswordCommand struct {
@@ -51,7 +55,11 @@ func (s *PasswordCommand) Execute(variables map[string]any) error {
 	}
 
 	letterRunes := []rune(s.Charset)
-	variables[s.Variable] = randStringRunes(s.Length, letterRunes, len(letterRunes))
+	password, err := randStringRunes(s.Length, letterRunes, len(letterRunes))
+	if err != nil {
+		return errors.Wrap(err, "failed to generate password")
+	}
+	variables[s.Variable] = password
 
 	return nil
 }

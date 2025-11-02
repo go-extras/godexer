@@ -75,7 +75,7 @@ func GetRegisteredCommands() map[string]func(ectx *ExecutorContext) Command {
 }
 
 type CommandDebugInfo struct {
-	Id       int
+	ID       int
 	Contents []byte
 }
 
@@ -116,8 +116,8 @@ func (r *BaseCommand) GetRequires() string {
 }
 
 func (r *BaseCommand) GetStepName() string {
-	if r.StepName == "" && r.debugInfo != nil && r.debugInfo.Id > 0 {
-		return fmt.Sprintf("__step_no_%03d", r.debugInfo.Id)
+	if r.StepName == "" && r.debugInfo != nil && r.debugInfo.ID > 0 {
+		return fmt.Sprintf("__step_no_%03d", r.debugInfo.ID)
 	}
 
 	return r.StepName
@@ -128,7 +128,10 @@ func (r *BaseCommand) GetHookAfter() string {
 }
 
 func (r *BaseCommand) GetDescription(variables map[string]any) string {
-	return MaybeEvalValue(r.Description, variables).(string)
+	if desc, ok := MaybeEvalValue(r.Description, variables).(string); ok {
+		return desc
+	}
+	return ""
 }
 
 type ExecutorContext struct {
@@ -237,9 +240,9 @@ func WithRegisteredCommandTypes() func(ex *Executor) {
 	return WithCommandTypes(GetRegisteredCommands())
 }
 
-func WithLogger(logger Logger) func(ex *Executor) {
+func WithLogger(log Logger) func(ex *Executor) {
 	return func(ex *Executor) {
-		ex.ectx.Logger = logger
+		ex.ectx.Logger = log
 	}
 }
 
@@ -296,7 +299,7 @@ func WithDefaultEvaluatorFunctions() func(ex *Executor) {
 }
 
 func (ex *Executor) AppendScenario(scenario string) error {
-	data, err := toJson([]byte(scenario))
+	data, err := toJSON([]byte(scenario))
 	if err != nil {
 		return err
 	}
@@ -325,7 +328,7 @@ func (ex *Executor) AppendScenario(scenario string) error {
 
 		if dicmd, ok := cmd.(DebugInfoer); ok {
 			dicmd.SetDebugInfo(&CommandDebugInfo{
-				Id:       id + 1,
+				ID:       id + 1,
 				Contents: rawCmd,
 			})
 		}

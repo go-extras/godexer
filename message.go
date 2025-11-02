@@ -1,5 +1,6 @@
 package executor
 
+//nolint:gochecknoinits // init is used for automatic command registration
 func init() {
 	RegisterCommand("message", NewMessageCommand)
 }
@@ -16,6 +17,6 @@ func NewMessageCommand(ectx *ExecutorContext) Command {
 	}
 }
 
-func (r *MessageCommand) Execute(variables map[string]any) error {
+func (*MessageCommand) Execute(_ map[string]any) error {
 	return nil
 }

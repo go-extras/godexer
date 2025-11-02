@@ -51,9 +51,10 @@ func GetClientConfig(user string, key *Key) (*ssh.ClientConfig, error) {
 	auth[0] = authMethod
 
 	config := &ssh.ClientConfig{
-		User:            user,
-		Auth:            auth,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // TODO: don't use for production?
+		User: user,
+		Auth: auth,
+		//nolint:gosec // This is test utility code; production code should use proper host key verification
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
 	return config, nil
@@ -103,10 +104,10 @@ type HandlerChFunc func(string, ssh.Channel) error
 
 func NewServer(signer ssh.Signer, handlerFunc HandlerFunc, handlerChFunc HandlerChFunc) *Server {
 	config := &ssh.ServerConfig{
-		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+		PublicKeyCallback: func(_ ssh.ConnMetadata, _ ssh.PublicKey) (*ssh.Permissions, error) {
 			return nil, nil
 		},
-		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+		PasswordCallback: func(_ ssh.ConnMetadata, _ []byte) (*ssh.Permissions, error) {
 			return nil, nil
 		},
 	}

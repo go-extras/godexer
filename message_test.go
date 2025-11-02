@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/suite"
 
-	. "github.com/go-extras/godexer"
+	"github.com/go-extras/godexer"
 )
 
 type MessageTestSuite struct {
@@ -17,12 +17,12 @@ type MessageTestSuite struct {
 func (t *MessageTestSuite) TestExecute() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewMessageCommand(&ExecutorContext{
+	cmd := executor.NewMessageCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*MessageCommand)
+	ex := cmd.(*executor.MessageCommand)
 	ex.Description = "data {{ index .  \"var1\" }}{{ index .  \"var2\" }}"
 
 	err := ex.Execute(map[string]any{

@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/afero"
 )
 
+//nolint:gochecknoinits // init is used for automatic command registration
 func init() {
 	RegisterCommand("writefile", NewWriterFileCommand)
 }

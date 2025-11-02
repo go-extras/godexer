@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/go-extras/godexer"
 )
@@ -79,6 +79,6 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("No errors occured")
-	fmt.Printf("Variable %q has a value %q\n", "output", vars["output"])
+	log.Println("No errors occured")
+	log.Printf("Variable %q has a value %q\n", "output", vars["output"])
 }

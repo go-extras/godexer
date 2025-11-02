@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/suite"
 
-	. "github.com/go-extras/godexer"
+	"github.com/go-extras/godexer"
 	"github.com/go-extras/godexer/internal/testutils"
 )
 
@@ -24,6 +24,7 @@ const runnerResultStdout = "foo!"
 func fakeExecCommand(command string, args ...string) *exec.Cmd {
 	cs := []string{"-test.run=TestExecRunnerHelper", "--", command}
 	cs = append(cs, args...)
+	//nolint:gosec // This is a test helper that intentionally uses os.Args[0]
 	cmd := exec.Command(os.Args[0], cs...)
 	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
 	return cmd
@@ -42,8 +43,10 @@ func TestExecRunnerHelper(t *testing.T) {
 	_, _ = fmt.Fprintf(os.Stderr, "%s", os.Args[len(os.Args)-1])
 	time.Sleep(100 * time.Millisecond) // this is to make sure it's flushed by the system
 	if os.Args[len(os.Args)-1] == "error" {
+		//nolint:revive // This is a test helper that simulates process exit
 		os.Exit(1)
 	}
+	//nolint:revive // This is a test helper that simulates process exit
 	os.Exit(0)
 }
 
@@ -100,7 +103,7 @@ func (t *ExecutorTestSuite) TestExecute() {
 	fs := afero.NewMemMapFs()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	hooksAfter := make(HooksAfter)
+	hooksAfter := make(executor.HooksAfter)
 	hooksAfter["f1"] = func(variables map[string]any) error {
 		variables["hookvar"] = "hookvalue"
 		return nil
@@ -116,14 +119,14 @@ func (t *ExecutorTestSuite) TestExecute() {
 	}()
 
 	// a way to mock the sleep function
-	TimeSleep = func(d time.Duration) {
+	executor.TimeSleep = func(d time.Duration) {
 		t.Equal(float64(10), d.Seconds())
 	}
-	defer func() { TimeSleep = time.Sleep }()
+	defer func() { executor.TimeSleep = time.Sleep }()
 
 	// fake exec command to avoid running the real shell commands
-	ExecCommandFn = fakeExecCommand
-	defer func() { ExecCommandFn = exec.Command }()
+	executor.ExecCommandFn = fakeExecCommand
+	defer func() { executor.ExecCommandFn = exec.Command }()
 
 	// executor vars
 	vars := map[string]any{
@@ -134,14 +137,14 @@ func (t *ExecutorTestSuite) TestExecute() {
 	// ... test starts here ...
 
 	// load executor
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		executorExecuteScript,
-		WithHooksAfter(hooksAfter),
-		WithStdout(stdout),
-		WithStderr(stderr),
-		WithFS(fs),
-		WithDefaultEvaluatorFunctions(),
-		WithLogger(logger),
+		executor.WithHooksAfter(hooksAfter),
+		executor.WithStdout(stdout),
+		executor.WithStderr(stderr),
+		executor.WithFS(fs),
+		executor.WithDefaultEvaluatorFunctions(),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	t.Require().NotNil(exc)
@@ -175,7 +178,7 @@ func (t *ExecutorTestSuite) TestWithEvaluatorFunction() {
 	fs := afero.NewMemMapFs()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	hooksAfter := make(HooksAfter)
+	hooksAfter := make(executor.HooksAfter)
 
 	cmds := `
 commands:
@@ -194,28 +197,28 @@ commands:
 		logrus.SetFormatter(logformatter)
 	}()
 
-	vars := map[string]any{}
+	vars := make(map[string]any)
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		cmds,
-		WithHooksAfter(hooksAfter),
-		WithStdout(stdout),
-		WithStderr(stderr),
-		WithFS(fs),
-		WithEvaluatorFunction("test", func(args ...any) (any, error) {
+		executor.WithHooksAfter(hooksAfter),
+		executor.WithStdout(stdout),
+		executor.WithStderr(stderr),
+		executor.WithFS(fs),
+		executor.WithEvaluatorFunction("test", func(args ...any) (any, error) {
 			if args[0].(string) == "foo" {
 				return "bar", nil
 			}
 
 			return "", nil
 		}),
-		WithLogger(logrus.StandardLogger()),
+		executor.WithLogger(logrus.StandardLogger()),
 	)
 
 	t.Require().NoError(err)
 	t.Require().NotNil(exc)
 
-	err = exc.Execute(vars)
+	_ = exc.Execute(vars)
 	d, _ := io.ReadAll(stdout)
 	t.Equal("Test call one\n", string(d))
 }
@@ -224,7 +227,7 @@ func (t *ExecutorTestSuite) TestExecute_MissingFunction() {
 	fs := afero.NewMemMapFs()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	hooksAfter := make(HooksAfter)
+	hooksAfter := make(executor.HooksAfter)
 
 	cmds := `
 commands:
@@ -243,14 +246,14 @@ commands:
 		logrus.SetFormatter(logformatter)
 	}()
 
-	vars := map[string]any{}
+	vars := make(map[string]any)
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		cmds,
-		WithHooksAfter(hooksAfter),
-		WithStdout(stdout),
-		WithStderr(stderr),
-		WithFS(fs),
+		executor.WithHooksAfter(hooksAfter),
+		executor.WithStdout(stdout),
+		executor.WithStderr(stderr),
+		executor.WithFS(fs),
 	)
 	t.Require().NoError(err)
 	t.Require().NotNil(exc)
@@ -263,7 +266,7 @@ func (t *ExecutorTestSuite) TestExecute_InvalidCommandType() {
 	fs := afero.NewMemMapFs()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	hooksAfter := make(HooksAfter)
+	hooksAfter := make(executor.HooksAfter)
 
 	cmds := `
 commands:
@@ -281,27 +284,27 @@ commands:
 		logrus.SetFormatter(logformatter)
 	}()
 
-	_, err := NewWithScenario(
+	_, err := executor.NewWithScenario(
 		cmds,
-		WithHooksAfter(hooksAfter),
-		WithStdout(stdout),
-		WithStderr(stderr),
-		WithFS(fs),
+		executor.WithHooksAfter(hooksAfter),
+		executor.WithStdout(stdout),
+		executor.WithStderr(stderr),
+		executor.WithFS(fs),
 	)
 	t.EqualError(err, "invalid command type: \"brambora\"")
 }
 
 type testcmd struct {
-	MessageCommand
+	executor.MessageCommand
 }
 
 func (t *ExecutorTestSuite) TestRegisterCommand() {
 	fs := afero.NewMemMapFs()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	hooksAfter := make(HooksAfter)
+	hooksAfter := make(executor.HooksAfter)
 
-	RegisterCommand("testcmd", func(ectx *ExecutorContext) Command {
+	executor.RegisterCommand("testcmd", func(ectx *executor.ExecutorContext) executor.Command {
 		return &testcmd{}
 	})
 
@@ -321,29 +324,29 @@ commands:
 		logrus.SetFormatter(logformatter)
 	}()
 
-	vars := map[string]any{}
+	vars := make(map[string]any)
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		cmds,
-		WithHooksAfter(hooksAfter),
-		WithStdout(stdout),
-		WithStderr(stderr),
-		WithFS(fs),
-		WithLogger(logrus.StandardLogger()),
+		executor.WithHooksAfter(hooksAfter),
+		executor.WithStdout(stdout),
+		executor.WithStderr(stderr),
+		executor.WithFS(fs),
+		executor.WithLogger(logrus.StandardLogger()),
 	)
 	t.Require().NoError(err)
 	t.Require().NotNil(exc)
 
-	err = exc.Execute(vars)
+	_ = exc.Execute(vars)
 	d, _ := io.ReadAll(stdout)
 	t.Equal("Test call one\n", string(d))
 }
 
 type testcmdfail struct {
-	MessageCommand
+	executor.MessageCommand
 }
 
-func (c *testcmdfail) Execute(_ map[string]any) error {
+func (*testcmdfail) Execute(_ map[string]any) error {
 	return errors.New("test error")
 }
 
@@ -351,9 +354,9 @@ func (t *ExecutorTestSuite) TestExecute_FailCommand() {
 	fs := afero.NewMemMapFs()
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	hooksAfter := make(HooksAfter)
+	hooksAfter := make(executor.HooksAfter)
 
-	RegisterCommand("testcmdfail", func(ectx *ExecutorContext) Command {
+	executor.RegisterCommand("testcmdfail", func(ectx *executor.ExecutorContext) executor.Command {
 		return &testcmdfail{}
 	})
 
@@ -373,15 +376,15 @@ commands:
 		logrus.SetFormatter(logformatter)
 	}()
 
-	vars := map[string]any{}
+	vars := make(map[string]any)
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		cmds,
-		WithHooksAfter(hooksAfter),
-		WithStdout(stdout),
-		WithStderr(stderr),
-		WithFS(fs),
-		WithLogger(logrus.StandardLogger()),
+		executor.WithHooksAfter(hooksAfter),
+		executor.WithStdout(stdout),
+		executor.WithStderr(stderr),
+		executor.WithFS(fs),
+		executor.WithLogger(logrus.StandardLogger()),
 	)
 	t.Require().NoError(err)
 	t.Require().NotNil(exc)
@@ -392,15 +395,15 @@ commands:
 
 func (t *ExecutorTestSuite) TestMaybeEvalValue() {
 	// valid parsable template
-	val := MaybeEvalValue(`{{ index . "foo" }}`, map[string]any{"foo": "bar"})
+	val := executor.MaybeEvalValue(`{{ index . "foo" }}`, map[string]any{"foo": "bar"})
 	t.Equal("bar", val)
 
 	// invalid template
-	val = MaybeEvalValue(`{{ index . "foo" }`, map[string]any{"foo": "bar"})
+	val = executor.MaybeEvalValue(`{{ index . "foo" }`, map[string]any{"foo": "bar"})
 	t.Equal(`{{ index . "foo" }`, val)
 
 	// non-string value
-	val = MaybeEvalValue(42, map[string]any{"foo": "bar"})
+	val = executor.MaybeEvalValue(42, map[string]any{"foo": "bar"})
 	t.Equal(42, val)
 }
 

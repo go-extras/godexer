@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/suite"
 
-	. "github.com/go-extras/godexer"
+	"github.com/go-extras/godexer"
 	"github.com/go-extras/godexer/internal/logger"
 )
 
@@ -23,19 +23,20 @@ func (t *ExecTestSuite) TestExecute() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd := NewExecCommand(&ExecutorContext{
+	cmd := executor.NewExecCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &stdout,
 		Stderr: &stderr,
 	})
-	ex := cmd.(*ExecCommand)
+	ex := cmd.(*executor.ExecCommand)
 	ex.Cmd = []string{"test"}
 	ex.Ectx.Logger = &logger.Logger{}
 	ex.Env = []string{"DUMMY=1"}
 
-	ExecCommandFn = fakeExecCommand
-	defer func() { ExecCommandFn = exec.Command }()
-	err := ex.Execute(map[string]any{})
+	executor.ExecCommandFn = fakeExecCommand
+	defer func() { executor.ExecCommandFn = exec.Command }()
+	vars := make(map[string]any)
+	err := ex.Execute(vars)
 	t.NoError(err)
 	d, _ := io.ReadAll(&stdout)
 	t.Equal(runnerResultStdout, string(d))
@@ -49,19 +50,19 @@ func (t *ExecTestSuite) TestExecute_WithVariable() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd := NewExecCommand(&ExecutorContext{
+	cmd := executor.NewExecCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &stdout,
 		Stderr: &stderr,
 	})
-	ex := cmd.(*ExecCommand)
+	ex := cmd.(*executor.ExecCommand)
 	ex.Cmd = []string{"test"}
 	ex.Ectx.Logger = &logger.Logger{}
 	ex.Variable = "myvar"
 	ex.Env = []string{"DUMMY=1"}
 
-	ExecCommandFn = fakeExecCommand
-	defer func() { ExecCommandFn = exec.Command }()
+	executor.ExecCommandFn = fakeExecCommand
+	defer func() { executor.ExecCommandFn = exec.Command }()
 	vars := make(map[string]any)
 	err := ex.Execute(vars)
 	t.Require().NoError(err)
@@ -78,20 +79,20 @@ func (t *ExecTestSuite) TestExecute_WithExitStatus() {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd := NewExecCommand(&ExecutorContext{
+	cmd := executor.NewExecCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &stdout,
 		Stderr: &stderr,
 	})
-	ex := cmd.(*ExecCommand)
+	ex := cmd.(*executor.ExecCommand)
 	ex.Cmd = []string{"error"}
 	ex.Ectx.Logger = &logger.Logger{}
 	ex.AllowFail = true
 	ex.StepName = "test"
 	ex.Env = []string{"DUMMY=1"}
 
-	ExecCommandFn = fakeExecCommand
-	defer func() { ExecCommandFn = exec.Command }()
+	executor.ExecCommandFn = fakeExecCommand
+	defer func() { executor.ExecCommandFn = exec.Command }()
 	vars := make(map[string]any)
 	err := ex.Execute(vars)
 	t.Require().NoError(err)
@@ -105,16 +106,16 @@ func (t *ExecTestSuite) TestExecute_WithExitStatus() {
 func (t *ExecTestSuite) TestExecute_Empty() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewExecCommand(&ExecutorContext{
+	cmd := executor.NewExecCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*ExecCommand)
+	ex := cmd.(*executor.ExecCommand)
 	ex.StepName = "dummy"
 
-	ExecCommandFn = fakeExecCommand
-	defer func() { ExecCommandFn = exec.Command }()
+	executor.ExecCommandFn = fakeExecCommand
+	defer func() { executor.ExecCommandFn = exec.Command }()
 	err := ex.Execute(nil)
 	t.EqualError(err, "command \"dummy\" is empty")
 }
@@ -124,18 +125,18 @@ func (t *ExecTestSuite) TestExecute_EvaluteVariables() {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := NewExecCommand(&ExecutorContext{
+	cmd := executor.NewExecCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &stdout,
 		Stderr: &stderr,
 	})
-	ex := cmd.(*ExecCommand)
+	ex := cmd.(*executor.ExecCommand)
 	ex.Cmd = []string{"{{ index .  \"var1\" }}{{ index .  \"var2\" }}"}
 	ex.Ectx.Logger = &logger.Logger{}
 	ex.Env = []string{"DUMMY=1"}
 
-	ExecCommandFn = fakeExecCommand
-	defer func() { ExecCommandFn = exec.Command }()
+	executor.ExecCommandFn = fakeExecCommand
+	defer func() { executor.ExecCommandFn = exec.Command }()
 	err := ex.Execute(map[string]any{
 		"var1": "val1",
 		"var2": "val2",

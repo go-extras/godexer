@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/suite"
 
-	. "github.com/go-extras/godexer"
+	"github.com/go-extras/godexer"
 	"github.com/go-extras/godexer/internal/testutils"
 )
 
@@ -26,28 +26,28 @@ func (t *ForeachTestSuite) TestExecuteWithIterableWithSlice() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
+	ex := cmd.(*executor.ForeachCommand)
 	ex.RawCommands = []json.RawMessage{
 		[]byte(`{"type": "message","stepName": "test","description": "k={{.key}}"}`),
 		[]byte(`{"type": "message","stepName": "test2","description": "v={{.value}}"}`),
 	}
 	ex.Iterable = []int{1, 2, 3}
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		"",
-		WithStdout(os.Stdout),
-		WithStderr(os.Stderr),
-		WithFS(fs),
-		WithCommandTypes(commands),
-		WithLogger(logger),
+		executor.WithStdout(os.Stdout),
+		executor.WithStderr(os.Stderr),
+		executor.WithFS(fs),
+		executor.WithCommandTypes(commands),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	ex.Ectx.Executor = exc
@@ -66,28 +66,28 @@ func (t *ForeachTestSuite) TestExecuteWithIterableWithMap() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
+	ex := cmd.(*executor.ForeachCommand)
 	ex.RawCommands = []json.RawMessage{
 		[]byte(`{"type": "message","stepName": "test","description": "k={{.key}}"}`),
 		[]byte(`{"type": "message","stepName": "test2","description": "v={{.value}}"}`),
 	}
 	ex.Iterable = map[string]string{"dummy1": "yummy1", "dummy2": "yummy2", "dummy3": "yummy3"}
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		"",
-		WithStdout(os.Stdout),
-		WithStderr(os.Stderr),
-		WithFS(fs),
-		WithCommandTypes(commands),
-		WithLogger(logger),
+		executor.WithStdout(os.Stdout),
+		executor.WithStderr(os.Stderr),
+		executor.WithFS(fs),
+		executor.WithCommandTypes(commands),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	ex.Ectx.Executor = exc
@@ -108,28 +108,28 @@ func (t *ForeachTestSuite) TestExecuteWithSlice() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
+	ex := cmd.(*executor.ForeachCommand)
 	ex.RawCommands = []json.RawMessage{
 		[]byte(`{"type": "message","stepName": "test","description": "k={{.key}}"}`),
 		[]byte(`{"type": "message","stepName": "test2","description": "v={{.value}}"}`),
 	}
 	ex.Variable = "slice"
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		"",
-		WithStdout(os.Stdout),
-		WithStderr(os.Stderr),
-		WithFS(fs),
-		WithCommandTypes(commands),
-		WithLogger(logger),
+		executor.WithStdout(os.Stdout),
+		executor.WithStderr(os.Stderr),
+		executor.WithFS(fs),
+		executor.WithCommandTypes(commands),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	ex.Ectx.Executor = exc
@@ -149,28 +149,28 @@ func (t *ForeachTestSuite) TestExecuteWithMap() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
+	ex := cmd.(*executor.ForeachCommand)
 	ex.RawCommands = []json.RawMessage{
 		[]byte(`{"type": "message","stepName": "test","description": "k={{.key}}"}`),
 		[]byte(`{"type": "message","stepName": "test2","description": "v={{.value}}"}`),
 	}
 	ex.Variable = "map"
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		"",
-		WithStdout(os.Stdout),
-		WithStderr(os.Stderr),
-		WithFS(fs),
-		WithCommandTypes(commands),
-		WithLogger(logger),
+		executor.WithStdout(os.Stdout),
+		executor.WithStderr(os.Stderr),
+		executor.WithFS(fs),
+		executor.WithCommandTypes(commands),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	ex.Ectx.Executor = exc
@@ -192,15 +192,15 @@ func (t *ForeachTestSuite) TestExecute_MissingExecutor() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	ex := cmd.(*executor.ForeachCommand)
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
 	variables := make(map[string]any)
 	err := ex.Execute(variables)
@@ -216,23 +216,23 @@ func (t *ForeachTestSuite) TestExecute_MissingVariable() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	ex := cmd.(*executor.ForeachCommand)
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		"",
-		WithStdout(os.Stdout),
-		WithStderr(os.Stderr),
-		WithFS(fs),
-		WithCommandTypes(commands),
-		WithLogger(logger),
+		executor.WithStdout(os.Stdout),
+		executor.WithStderr(os.Stderr),
+		executor.WithFS(fs),
+		executor.WithCommandTypes(commands),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	ex.Ectx.Executor = exc
@@ -251,24 +251,24 @@ func (t *ForeachTestSuite) TestExecute_MissingVariable2() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
+	ex := cmd.(*executor.ForeachCommand)
 	ex.Variable = "dummy"
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		"",
-		WithStdout(os.Stdout),
-		WithStderr(os.Stderr),
-		WithFS(fs),
-		WithCommandTypes(commands),
-		WithLogger(logger),
+		executor.WithStdout(os.Stdout),
+		executor.WithStderr(os.Stderr),
+		executor.WithFS(fs),
+		executor.WithCommandTypes(commands),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	ex.Ectx.Executor = exc
@@ -287,24 +287,24 @@ func (t *ForeachTestSuite) TestExecute_MissingVariable3() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
+	ex := cmd.(*executor.ForeachCommand)
 	ex.Variable = "dummy"
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		"",
-		WithStdout(os.Stdout),
-		WithStderr(os.Stderr),
-		WithFS(fs),
-		WithCommandTypes(commands),
-		WithLogger(logger),
+		executor.WithStdout(os.Stdout),
+		executor.WithStderr(os.Stderr),
+		executor.WithFS(fs),
+		executor.WithCommandTypes(commands),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	ex.Ectx.Executor = exc
@@ -324,24 +324,24 @@ func (t *ForeachTestSuite) TestExecute_WrongVariableType() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
+	ex := cmd.(*executor.ForeachCommand)
 	ex.Variable = "dummy"
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		"",
-		WithStdout(os.Stdout),
-		WithStderr(os.Stderr),
-		WithFS(fs),
-		WithCommandTypes(commands),
-		WithLogger(logger),
+		executor.WithStdout(os.Stdout),
+		executor.WithStderr(os.Stderr),
+		executor.WithFS(fs),
+		executor.WithCommandTypes(commands),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	ex.Ectx.Executor = exc
@@ -361,24 +361,24 @@ func (t *ForeachTestSuite) TestExecute_WrongVariableType2() {
 	logger.SetOutput(memlog)
 	logger.SetFormatter(&testutils.SimpleFormatter{})
 
-	cmd := NewForeachCommand(&ExecutorContext{
+	cmd := executor.NewForeachCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 		Logger: logger,
 	})
-	ex := cmd.(*ForeachCommand)
+	ex := cmd.(*executor.ForeachCommand)
 	ex.Variable = "dummy"
-	commands := make(map[string]func(*ExecutorContext) Command)
-	commands["message"] = NewMessageCommand
+	commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
+	commands["message"] = executor.NewMessageCommand
 
-	exc, err := NewWithScenario(
+	exc, err := executor.NewWithScenario(
 		"",
-		WithStdout(os.Stdout),
-		WithStderr(os.Stderr),
-		WithFS(fs),
-		WithCommandTypes(commands),
-		WithLogger(logger),
+		executor.WithStdout(os.Stdout),
+		executor.WithStderr(os.Stderr),
+		executor.WithFS(fs),
+		executor.WithCommandTypes(commands),
+		executor.WithLogger(logger),
 	)
 	t.Require().NoError(err)
 	ex.Ectx.Executor = exc

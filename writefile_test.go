@@ -2,13 +2,13 @@ package executor_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/suite"
 
-	. "github.com/go-extras/godexer"
+	"github.com/go-extras/godexer"
 	"github.com/go-extras/godexer/internal/logger"
 )
 
@@ -19,12 +19,12 @@ type WriteFileTestSuite struct {
 func (t *WriteFileTestSuite) TestExecute() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewWriterFileCommand(&ExecutorContext{
+	cmd := executor.NewWriterFileCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*WriteFileCommand)
+	ex := cmd.(*executor.WriteFileCommand)
 	ex.File = "dummy"
 	ex.Contents = "data {{ index .  \"var1\" }}{{ index .  \"var2\" }}"
 	ex.Ectx.Logger = &logger.Logger{}
@@ -37,19 +37,19 @@ func (t *WriteFileTestSuite) TestExecute() {
 	t.NoError(err)
 
 	f, _ := fs.Open("dummy")
-	d, _ := ioutil.ReadAll(f)
+	d, _ := io.ReadAll(f)
 	t.Equal("data val1val2", string(d))
 }
 
 func (t *WriteFileTestSuite) TestExecute_MissingFile() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewWriterFileCommand(&ExecutorContext{
+	cmd := executor.NewWriterFileCommand(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*WriteFileCommand)
+	ex := cmd.(*executor.WriteFileCommand)
 	ex.Contents = "data {{ index .  \"var1\" }}{{ index .  \"var2\" }}"
 	ex.StepName = "step"
 

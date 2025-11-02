@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/suite"
 
-	. "github.com/go-extras/godexer"
+	"github.com/go-extras/godexer"
 )
 
 type PasswordTestSuite struct {
@@ -18,12 +18,12 @@ type PasswordTestSuite struct {
 func (t *PasswordTestSuite) TestExecute() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewPassword(&ExecutorContext{
+	cmd := executor.NewPassword(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	pwd := cmd.(*PasswordCommand)
+	pwd := cmd.(*executor.PasswordCommand)
 	pwd.Variable = "foo"
 	vars := make(map[string]any)
 	err := pwd.Execute(vars)
@@ -34,12 +34,12 @@ func (t *PasswordTestSuite) TestExecute() {
 func (t *PasswordTestSuite) TestExecute_CustomLen() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewPassword(&ExecutorContext{
+	cmd := executor.NewPassword(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	pwd := cmd.(*PasswordCommand)
+	pwd := cmd.(*executor.PasswordCommand)
 	pwd.Variable = "foo"
 	pwd.Length = 10
 	vars := make(map[string]any)
@@ -51,12 +51,12 @@ func (t *PasswordTestSuite) TestExecute_CustomLen() {
 func (t *PasswordTestSuite) TestExecute_MinLen() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewPassword(&ExecutorContext{
+	cmd := executor.NewPassword(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	pwd := cmd.(*PasswordCommand)
+	pwd := cmd.(*executor.PasswordCommand)
 	pwd.Variable = "foo"
 	pwd.Length = 5
 	vars := make(map[string]any)
@@ -68,12 +68,12 @@ func (t *PasswordTestSuite) TestExecute_MinLen() {
 func (t *PasswordTestSuite) TestExecute_MissingVar() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewPassword(&ExecutorContext{
+	cmd := executor.NewPassword(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	pwd := cmd.(*PasswordCommand)
+	pwd := cmd.(*executor.PasswordCommand)
 	vars := make(map[string]any)
 	err := pwd.Execute(vars)
 	t.EqualError(err, "password: variable name cannot be empty")
@@ -82,12 +82,12 @@ func (t *PasswordTestSuite) TestExecute_MissingVar() {
 func (t *PasswordTestSuite) TestExecute_Charset() {
 	fs := afero.NewMemMapFs()
 
-	cmd := NewPassword(&ExecutorContext{
+	cmd := executor.NewPassword(&executor.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	pwd := cmd.(*PasswordCommand)
+	pwd := cmd.(*executor.PasswordCommand)
 	pwd.Variable = "foo"
 	pwd.Charset = "abcd"
 	vars := make(map[string]any)

@@ -13,6 +13,7 @@ import (
 
 var ExecCommandFn = exec.Command
 
+//nolint:gochecknoinits // init is used for automatic command registration
 func init() {
 	RegisterCommand("", NewExecCommand) // default command
 	RegisterCommand("exec", NewExecCommand)

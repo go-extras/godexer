@@ -4,6 +4,7 @@ import (
 	"github.com/go-extras/errors"
 )
 
+//nolint:gochecknoinits // init is used for automatic command registration
 func init() {
 	RegisterCommand("variable", NewVariableCommand)
 }

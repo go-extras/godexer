@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
 
-	. "github.com/go-extras/godexer/internal/scp"
+	"github.com/go-extras/godexer/internal/scp"
 	"github.com/go-extras/godexer/internal/testutils"
 )
 
@@ -68,7 +68,7 @@ func getScpHandler(t *testing.T, expectedFname string, expectedSize int, uploade
 
 			var fileName [1024]byte
 			// read file name
-			n, err := ch.Read(fileName[:])
+			_, err := ch.Read(fileName[:])
 			if err != nil {
 				return err
 			}
@@ -100,7 +100,7 @@ func getScpHandler(t *testing.T, expectedFname string, expectedSize int, uploade
 				size -= 1024
 
 				var fileDataChunk [1024]byte
-				n, err = ch.Read(fileDataChunk[:])
+				n, err := ch.Read(fileDataChunk[:])
 				if err != nil {
 					return err
 				}
@@ -110,6 +110,7 @@ func getScpHandler(t *testing.T, expectedFname string, expectedSize int, uploade
 			}
 
 			// log.Printf("read size %d", len(fileData))
+			_ = fileData // data is read but not validated in this test
 
 			ch.Write([]byte("\x00"))
 			// log.Print("sent ok3")
@@ -129,7 +130,7 @@ func getScpHandler(t *testing.T, expectedFname string, expectedSize int, uploade
 }
 
 func TestClient_Copy(t *testing.T) {
-	const DataSize = 5 * 1024 * 1024
+	const dataSize = 5 * 1024 * 1024
 
 	r := require.New(t)
 
@@ -138,7 +139,7 @@ func TestClient_Copy(t *testing.T) {
 
 	var uploaded int32
 
-	srv := testutils.NewServer(signer, nil, getScpHandler(t, "/remote/path", DataSize, &uploaded))
+	srv := testutils.NewServer(signer, nil, getScpHandler(t, "/remote/path", dataSize, &uploaded))
 	go srv.Start()
 	defer srv.Stop()
 
@@ -154,9 +155,9 @@ func TestClient_Copy(t *testing.T) {
 	r.NoError(err)
 
 	defer session.Close()
-	client := NewClient(sshClient.Conn, session)
+	client := scp.NewClient(sshClient.Conn, session)
 
-	data, _ := genRandomBytes(DataSize)
+	data, _ := genRandomBytes(dataSize)
 	buf := bytes.NewReader(data)
 	err = client.Copy(buf, "/remote/path", "0644", int64(len(data)))
 	r.NoError(err)
@@ -172,13 +173,13 @@ func checkerr(err error) {
 }
 
 func BenchmarkClient_Copy(b *testing.B) {
-	const DataSize = 5 * 1024 * 1024
+	const dataSize = 5 * 1024 * 1024
 
 	signer, err := testutils.MakeSigner(key)
 	checkerr(err)
 
 	var uploaded int32
-	srv := testutils.NewServer(signer, nil, getScpHandler(nil, "/remote/path", DataSize, &uploaded))
+	srv := testutils.NewServer(signer, nil, getScpHandler(nil, "/remote/path", dataSize, &uploaded))
 	go srv.Start()
 	defer srv.Stop()
 
@@ -190,13 +191,13 @@ func BenchmarkClient_Copy(b *testing.B) {
 	sshClient, err := testutils.CreateConn(addr.IP.String(), strconv.Itoa(addr.Port), cfg)
 	checkerr(err)
 
-	data, _ := genRandomBytes(DataSize)
+	data, _ := genRandomBytes(dataSize)
 
 	// run the function b.N times
 	for n := 0; n < b.N; n++ {
 		session, err := sshClient.NewSession()
 		checkerr(err)
-		client := NewClient(sshClient.Conn, session)
+		client := scp.NewClient(sshClient.Conn, session)
 		buf := bytes.NewReader(data)
 		err = client.Copy(buf, "/remote/path", "0644", int64(len(data)))
 		session.Close()

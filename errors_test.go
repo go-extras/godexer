@@ -25,7 +25,7 @@ func (t *ErrorsTestSuite) TestCommandAwareError() {
 	})
 	ex := cmd.(*executor.MessageCommand)
 	ex.SetDebugInfo(&executor.CommandDebugInfo{
-		Id:       4242,
+		ID:       4242,
 		Contents: []byte("{}"),
 	})
 

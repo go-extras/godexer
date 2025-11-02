@@ -45,13 +45,19 @@ func (r *ScpWriteFileCommand) Execute(variables map[string]any) error {
 		return errors.Errorf("filemode permissions in %q are empty", r.StepName)
 	}
 
-	remoteFileName := executor.MaybeEvalValue(r.File, variables).(string)
+	remoteFileName, ok := executor.MaybeEvalValue(r.File, variables).(string)
+	if !ok {
+		return errors.Errorf("filename in %q must be a string", r.StepName)
+	}
 
 	var reader io.Reader
 
 	switch {
 	case r.ContentsFromVariable != "":
-		variable := executor.MaybeEvalValue(r.ContentsFromVariable, variables).(string)
+		variable, ok := executor.MaybeEvalValue(r.ContentsFromVariable, variables).(string)
+		if !ok {
+			return errors.Errorf("contents_from_variable in %q must be a string", r.StepName)
+		}
 		switch v := variables[variable].(type) {
 		case string:
 			reader = strings.NewReader(v)
