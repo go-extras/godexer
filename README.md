@@ -1,12 +1,12 @@
-Executor Library
-================
+Godexer Library
+===============
 
 Godexer is a Go library for executing command pipelines using YAML configuration syntax. The library provides a clean,
 extensible framework for defining and executing various types of commands with template support, conditional execution,
 and error handling.
 
 This library is designed to run configure and run command pipelines. It uses simple YAML syntax, lets you register
-custom command types, add post call hooks, use templates to insert your varibles inside other variables or messages and
+custom command types, add post call hooks, use templates to insert your variables inside other variables or messages and
 define requirements so that some steps could be skipped depending on the conditions.
 
 ## Basic usage
@@ -66,7 +66,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("No errors occured")
+	fmt.Println("No errors occurred")
 	fmt.Printf("Variable %q has a value %q\n", "output", vars["output"])
 }
 ```
@@ -180,9 +180,9 @@ This executor type sets a variable.
 so you can access it this way: `{{ index . "map_key" }}`.
 
 
-### Variable
+### WriteFile
 
-This executor type sets a variable.
+This executor type writes content to a file.
 
 #### Accepted arguments
 
@@ -239,8 +239,10 @@ Now you can use it in your yaml configuration:
 
 ## How to create your own evaluator functions
 
-In addition to two existing functions: `strlen` and `file_exists` you can add your own ones (the default ones exist
-mostly for example by the way).
+In addition to the existing evaluator functions (`strlen`, `file_exists`, and `shell_escape`), you can add your own ones.
+
+Note: `strlen` returns a number (float64) that can be used in expressions (e.g., `strlen(var1) > 5`),
+`file_exists` returns a boolean, and `shell_escape` returns a string.
 
 ```go
 	exc, err := executor.LoadExecutor(commands, nil, os.Stdout, os.Stderr, fs)

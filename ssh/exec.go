@@ -192,7 +192,7 @@ func (r *ExecCommand) handleAllowFail(err error, variables map[string]any) {
 }
 
 func (r *ExecCommand) handleError(err error, variables map[string]any) error {
-	r.Ectx.Logger.Infof("Got an error and attepts = %d", r.Attempts)
+	r.Ectx.Logger.Infof("Got an error and attempts = %d", r.Attempts)
 
 	if r.OnEachFailure != nil {
 		innerErr := r.onFailure(r.OnEachFailure, variables)

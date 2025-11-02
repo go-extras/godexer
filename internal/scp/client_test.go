@@ -56,6 +56,8 @@ func getScpHandler(c *qt.C, expectedFname string, expectedSize int, uploaded *in
 	return func(cmd string, ch ssh.Channel) error {
 		if strings.HasPrefix(cmd, "scp -qt") {
 			filePath := cmd[8:]
+			// The path is now shell-escaped (quoted), so we need to trim quotes
+			filePath = strings.Trim(filePath, "'\"")
 			if c != nil {
 				c.Assert(filePath, qt.Equals, expectedFname)
 			}

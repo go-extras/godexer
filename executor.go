@@ -263,9 +263,9 @@ func WithEvaluatorFunctions(funcs map[string]govaluate.ExpressionFunction) func(
 // WithDefaultEvaluatorFunctions registers value evaluator functions.
 //
 // There are 3 of them available:
-// - `file_exists(filename string) (bool, error)`
-// - `strlen(str string) bool`
-// - `shell_escape(str string) string`
+// - `file_exists(filename string) (bool, error)` - returns true if file exists
+// - `strlen(str string) (float64, error)` - returns the length of the string as a number
+// - `shell_escape(str string) (string, error)` - returns the shell-escaped version of the string
 func WithDefaultEvaluatorFunctions() func(ex *Executor) {
 	return func(ex *Executor) {
 		ex.RegisterEvaluatorFunction("file_exists", func(args ...any) (any, error) {

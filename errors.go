@@ -13,14 +13,15 @@ type CommandAwareError struct {
 }
 
 func NewCommandAwareError(err error, cmd Command, variables map[string]any) *CommandAwareError {
+	varsCopy := make(map[string]any, len(variables))
+	for k, v := range variables {
+		varsCopy[k] = v
+	}
+
 	result := &CommandAwareError{
 		err:       err,
 		cmd:       cmd,
-		variables: variables,
-	}
-
-	for k, v := range variables {
-		result.variables[k] = v
+		variables: varsCopy,
 	}
 
 	return result
