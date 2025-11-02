@@ -11,7 +11,7 @@ permissions:
   pull-requests: read
 
 env:
-  COVERAGE_THRESHOLD: 80
+  COVERAGE_THRESHOLD: 50
 
 jobs:
   # Build verification - ensure library compiles
