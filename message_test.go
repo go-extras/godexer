@@ -4,17 +4,14 @@ import (
 	"bytes"
 	"testing"
 
+	qt "github.com/frankban/quicktest"
 	"github.com/spf13/afero"
-	"github.com/stretchr/testify/suite"
 
 	"github.com/go-extras/godexer"
 )
 
-type MessageTestSuite struct {
-	suite.Suite
-}
-
-func (t *MessageTestSuite) TestExecute() {
+func TestMessageExecute(t *testing.T) {
+	c := qt.New(t)
 	fs := afero.NewMemMapFs()
 
 	cmd := executor.NewMessageCommand(&executor.ExecutorContext{
@@ -29,14 +26,10 @@ func (t *MessageTestSuite) TestExecute() {
 		"var1": "val1",
 		"var2": "val2",
 	})
-	t.NoError(err)
+	c.Assert(err, qt.IsNil)
 	desc := ex.GetDescription(map[string]any{
 		"var1": "val1",
 		"var2": "val2",
 	})
-	t.Equal("data val1val2", desc)
-}
-
-func TestMessage(t *testing.T) {
-	suite.Run(t, new(MessageTestSuite))
+	c.Assert(desc, qt.Equals, "data val1val2")
 }

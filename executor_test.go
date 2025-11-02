@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	qt "github.com/frankban/quicktest"
 	"github.com/go-extras/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
-	"github.com/stretchr/testify/suite"
 
 	"github.com/go-extras/godexer"
 	"github.com/go-extras/godexer/internal/testutils"
@@ -50,8 +50,16 @@ func TestExecRunnerHelper(t *testing.T) {
 	os.Exit(0)
 }
 
-type ExecutorTestSuite struct {
-	suite.Suite
+type testcmd struct {
+	executor.MessageCommand
+}
+
+type testcmdfail struct {
+	executor.BaseCommand
+}
+
+func (*testcmdfail) Execute(_ map[string]any) error {
+	return errors.New("test error")
 }
 
 const executorExecuteScript = `commands:
@@ -98,71 +106,73 @@ const executorExecuteScript = `commands:
       - DUMMY=1
 `
 
-func (t *ExecutorTestSuite) TestExecute() {
-	// init stuff to load the executor
-	fs := afero.NewMemMapFs()
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	hooksAfter := make(executor.HooksAfter)
-	hooksAfter["f1"] = func(variables map[string]any) error {
-		variables["hookvar"] = "hookvalue"
-		return nil
-	}
-	logger := logrus.StandardLogger()
-	logout := logger.Out
-	logformatter := logger.Formatter
-	logrus.SetOutput(stdout)
-	logrus.SetFormatter(&testutils.SimpleFormatter{})
-	defer func() {
-		logrus.SetOutput(logout)
-		logrus.SetFormatter(logformatter)
-	}()
+func TestExecutor(t *testing.T) {
+	t.Run("Execute", func(t *testing.T) {
+		c := qt.New(t)
+		// init stuff to load the executor
+		fs := afero.NewMemMapFs()
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		hooksAfter := make(executor.HooksAfter)
+		hooksAfter["f1"] = func(variables map[string]any) error {
+			variables["hookvar"] = "hookvalue"
+			return nil
+		}
+		logger := logrus.StandardLogger()
+		logout := logger.Out
+		logformatter := logger.Formatter
+		logrus.SetOutput(stdout)
+		logrus.SetFormatter(&testutils.SimpleFormatter{})
+		defer func() {
+			logrus.SetOutput(logout)
+			logrus.SetFormatter(logformatter)
+		}()
 
-	// a way to mock the sleep function
-	executor.TimeSleep = func(d time.Duration) {
-		t.Equal(float64(10), d.Seconds())
-	}
-	defer func() { executor.TimeSleep = time.Sleep }()
+		// a way to mock the sleep function
+		executor.TimeSleep = func(d time.Duration) {
+			c.Assert(d.Seconds(), qt.Equals, float64(10))
+		}
+		defer func() { executor.TimeSleep = time.Sleep }()
 
-	// fake exec command to avoid running the real shell commands
-	executor.ExecCommandFn = fakeExecCommand
-	defer func() { executor.ExecCommandFn = exec.Command }()
+		// fake exec command to avoid running the real shell commands
+		executor.ExecCommandFn = fakeExecCommand
+		defer func() { executor.ExecCommandFn = exec.Command }()
 
-	// executor vars
-	vars := map[string]any{
-		"var1": "val1",
-		"var2": "val2",
-	}
+		// executor vars
+		vars := map[string]any{
+			"var1": "val1",
+			"var2": "val2",
+		}
 
-	// ... test starts here ...
+		// ... test starts here ...
 
-	// load executor
-	exc, err := executor.NewWithScenario(
-		executorExecuteScript,
-		executor.WithHooksAfter(hooksAfter),
-		executor.WithStdout(stdout),
-		executor.WithStderr(stderr),
-		executor.WithFS(fs),
-		executor.WithDefaultEvaluatorFunctions(),
-		executor.WithLogger(logger),
-	)
-	t.Require().NoError(err)
-	t.Require().NotNil(exc)
+		// load executor
+		exc, err := executor.NewWithScenario(
+			executorExecuteScript,
+			executor.WithHooksAfter(hooksAfter),
+			executor.WithStdout(stdout),
+			executor.WithStderr(stderr),
+			executor.WithFS(fs),
+			executor.WithDefaultEvaluatorFunctions(),
+			executor.WithLogger(logger),
+		)
+		c.Assert(err, qt.IsNil)
+		c.Assert(exc, qt.IsNotNil)
 
-	err = exc.Execute(vars)
-	t.Require().NoError(err)
+		err = exc.Execute(vars)
+		c.Assert(err, qt.IsNil)
 
-	t.Equal("hookvalue", vars["hookvar"], "hook defined var doesn't match")
-	t.Equal("value: val2", vars["dummy"])
-	t.Regexp(regexp.MustCompile(`^[a-d]{8}$`), vars["pwd"])
-	f, err := fs.Open("/some/file")
-	t.Require().NoError(err)
+		c.Assert(vars["hookvar"], qt.Equals, "hookvalue", qt.Commentf("hook defined var doesn't match"))
+		c.Assert(vars["dummy"], qt.Equals, "value: val2")
+		c.Assert(vars["pwd"], qt.Matches, regexp.MustCompile(`^[a-d]{8}$`))
+		f, err := fs.Open("/some/file")
+		c.Assert(err, qt.IsNil)
 
-	d, _ := io.ReadAll(f)
-	t.Equal("value: val2", string(d))
+		d, _ := io.ReadAll(f)
+		c.Assert(string(d), qt.Equals, "value: val2")
 
-	d, _ = io.ReadAll(stdout)
-	t.Equal(`Test call val1
+		d, _ = io.ReadAll(stdout)
+		c.Assert(string(d), qt.Equals, `Test call val1
 Test call two
 Test call two and a half
 Test call three
@@ -171,16 +181,17 @@ Test call four
 Test call five
 Test call six
 Executing: xxx
-foo!`, string(d))
-}
+foo!`)
+	})
 
-func (t *ExecutorTestSuite) TestWithEvaluatorFunction() {
-	fs := afero.NewMemMapFs()
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	hooksAfter := make(executor.HooksAfter)
+	t.Run("WithEvaluatorFunction", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		hooksAfter := make(executor.HooksAfter)
 
-	cmds := `
+		cmds := `
 commands:
   - type: message
     stepName: step_skip_one
@@ -188,48 +199,49 @@ commands:
     requires: 'test("foo") == "bar"'
 `
 
-	logout := logrus.StandardLogger().Out
-	logformatter := logrus.StandardLogger().Formatter
-	logrus.SetOutput(stdout)
-	logrus.SetFormatter(&testutils.SimpleFormatter{})
-	defer func() {
-		logrus.SetOutput(logout)
-		logrus.SetFormatter(logformatter)
-	}()
+		logout := logrus.StandardLogger().Out
+		logformatter := logrus.StandardLogger().Formatter
+		logrus.SetOutput(stdout)
+		logrus.SetFormatter(&testutils.SimpleFormatter{})
+		defer func() {
+			logrus.SetOutput(logout)
+			logrus.SetFormatter(logformatter)
+		}()
 
-	vars := make(map[string]any)
+		vars := make(map[string]any)
 
-	exc, err := executor.NewWithScenario(
-		cmds,
-		executor.WithHooksAfter(hooksAfter),
-		executor.WithStdout(stdout),
-		executor.WithStderr(stderr),
-		executor.WithFS(fs),
-		executor.WithEvaluatorFunction("test", func(args ...any) (any, error) {
-			if args[0].(string) == "foo" {
-				return "bar", nil
-			}
+		exc, err := executor.NewWithScenario(
+			cmds,
+			executor.WithHooksAfter(hooksAfter),
+			executor.WithStdout(stdout),
+			executor.WithStderr(stderr),
+			executor.WithFS(fs),
+			executor.WithEvaluatorFunction("test", func(args ...any) (any, error) {
+				if args[0].(string) == "foo" {
+					return "bar", nil
+				}
 
-			return "", nil
-		}),
-		executor.WithLogger(logrus.StandardLogger()),
-	)
+				return "", nil
+			}),
+			executor.WithLogger(logrus.StandardLogger()),
+		)
 
-	t.Require().NoError(err)
-	t.Require().NotNil(exc)
+		c.Assert(err, qt.IsNil)
+		c.Assert(exc, qt.IsNotNil)
 
-	_ = exc.Execute(vars)
-	d, _ := io.ReadAll(stdout)
-	t.Equal("Test call one\n", string(d))
-}
+		_ = exc.Execute(vars)
+		d, _ := io.ReadAll(stdout)
+		c.Assert(string(d), qt.Equals, "Test call one\n")
+	})
 
-func (t *ExecutorTestSuite) TestExecute_MissingFunction() {
-	fs := afero.NewMemMapFs()
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	hooksAfter := make(executor.HooksAfter)
+	t.Run("Execute_MissingFunction", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		hooksAfter := make(executor.HooksAfter)
 
-	cmds := `
+		cmds := `
 commands:
   - type: message
     stepName: step_skip_one
@@ -237,176 +249,175 @@ commands:
     requires: 'strlen(var1) == 1'
 `
 
-	logout := logrus.StandardLogger().Out
-	logformatter := logrus.StandardLogger().Formatter
-	logrus.SetOutput(stdout)
-	logrus.SetFormatter(&testutils.SimpleFormatter{})
-	defer func() {
-		logrus.SetOutput(logout)
-		logrus.SetFormatter(logformatter)
-	}()
+		logout := logrus.StandardLogger().Out
+		logformatter := logrus.StandardLogger().Formatter
+		logrus.SetOutput(stdout)
+		logrus.SetFormatter(&testutils.SimpleFormatter{})
+		defer func() {
+			logrus.SetOutput(logout)
+			logrus.SetFormatter(logformatter)
+		}()
 
-	vars := make(map[string]any)
+		vars := make(map[string]any)
 
-	exc, err := executor.NewWithScenario(
-		cmds,
-		executor.WithHooksAfter(hooksAfter),
-		executor.WithStdout(stdout),
-		executor.WithStderr(stderr),
-		executor.WithFS(fs),
-	)
-	t.Require().NoError(err)
-	t.Require().NotNil(exc)
+		exc, err := executor.NewWithScenario(
+			cmds,
+			executor.WithHooksAfter(hooksAfter),
+			executor.WithStdout(stdout),
+			executor.WithStderr(stderr),
+			executor.WithFS(fs),
+		)
+		c.Assert(err, qt.IsNil)
+		c.Assert(exc, qt.IsNotNil)
 
-	err = exc.Execute(vars)
-	t.EqualError(errors.Cause(err), "Cannot transition token types from VARIABLE [strlen] to CLAUSE [40]")
-}
+		err = exc.Execute(vars)
+		c.Assert(errors.Cause(err), qt.ErrorMatches, "Cannot transition token types from VARIABLE \\[strlen\\] to CLAUSE \\[40\\]")
+	})
 
-func (t *ExecutorTestSuite) TestExecute_InvalidCommandType() {
-	fs := afero.NewMemMapFs()
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	hooksAfter := make(executor.HooksAfter)
+	t.Run("Execute_InvalidCommandType", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		hooksAfter := make(executor.HooksAfter)
 
-	cmds := `
+		cmds := `
 commands:
   - type: brambora
     stepName: step_skip_one
     description: Test call skip one
 `
 
-	logout := logrus.StandardLogger().Out
-	logformatter := logrus.StandardLogger().Formatter
-	logrus.SetOutput(stdout)
-	logrus.SetFormatter(&testutils.SimpleFormatter{})
-	defer func() {
-		logrus.SetOutput(logout)
-		logrus.SetFormatter(logformatter)
-	}()
+		logout := logrus.StandardLogger().Out
+		logformatter := logrus.StandardLogger().Formatter
+		logrus.SetOutput(stdout)
+		logrus.SetFormatter(&testutils.SimpleFormatter{})
+		defer func() {
+			logrus.SetOutput(logout)
+			logrus.SetFormatter(logformatter)
+		}()
 
-	_, err := executor.NewWithScenario(
-		cmds,
-		executor.WithHooksAfter(hooksAfter),
-		executor.WithStdout(stdout),
-		executor.WithStderr(stderr),
-		executor.WithFS(fs),
-	)
-	t.EqualError(err, "invalid command type: \"brambora\"")
-}
-
-type testcmd struct {
-	executor.MessageCommand
-}
-
-func (t *ExecutorTestSuite) TestRegisterCommand() {
-	fs := afero.NewMemMapFs()
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	hooksAfter := make(executor.HooksAfter)
-
-	executor.RegisterCommand("testcmd", func(ectx *executor.ExecutorContext) executor.Command {
-		return &testcmd{}
+		_, err := executor.NewWithScenario(
+			cmds,
+			executor.WithHooksAfter(hooksAfter),
+			executor.WithStdout(stdout),
+			executor.WithStderr(stderr),
+			executor.WithFS(fs),
+		)
+		c.Assert(err, qt.ErrorMatches, "invalid command type: \"brambora\"")
 	})
 
-	cmds := `
+	t.Run("RegisterCommand", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		hooksAfter := make(executor.HooksAfter)
+
+		executor.RegisterCommand("testcmd", func(ectx *executor.ExecutorContext) executor.Command {
+			return &testcmd{
+				MessageCommand: executor.MessageCommand{
+					BaseCommand: executor.BaseCommand{
+						Ectx: ectx,
+					},
+				},
+			}
+		})
+
+		cmds := `
 commands:
   - type: testcmd
     stepName: step_skip_one
     description: Test call one
 `
 
-	logout := logrus.StandardLogger().Out
-	logformatter := logrus.StandardLogger().Formatter
-	logrus.SetOutput(stdout)
-	logrus.SetFormatter(&testutils.SimpleFormatter{})
-	defer func() {
-		logrus.SetOutput(logout)
-		logrus.SetFormatter(logformatter)
-	}()
+		logout := logrus.StandardLogger().Out
+		logformatter := logrus.StandardLogger().Formatter
+		logrus.SetOutput(stdout)
+		logrus.SetFormatter(&testutils.SimpleFormatter{})
+		defer func() {
+			logrus.SetOutput(logout)
+			logrus.SetFormatter(logformatter)
+		}()
 
-	vars := make(map[string]any)
+		vars := make(map[string]any)
 
-	exc, err := executor.NewWithScenario(
-		cmds,
-		executor.WithHooksAfter(hooksAfter),
-		executor.WithStdout(stdout),
-		executor.WithStderr(stderr),
-		executor.WithFS(fs),
-		executor.WithLogger(logrus.StandardLogger()),
-	)
-	t.Require().NoError(err)
-	t.Require().NotNil(exc)
+		exc, err := executor.NewWithScenario(
+			cmds,
+			executor.WithHooksAfter(hooksAfter),
+			executor.WithStdout(stdout),
+			executor.WithStderr(stderr),
+			executor.WithFS(fs),
+			executor.WithLogger(logrus.StandardLogger()),
+		)
+		c.Assert(err, qt.IsNil)
+		c.Assert(exc, qt.IsNotNil)
 
-	_ = exc.Execute(vars)
-	d, _ := io.ReadAll(stdout)
-	t.Equal("Test call one\n", string(d))
-}
-
-type testcmdfail struct {
-	executor.MessageCommand
-}
-
-func (*testcmdfail) Execute(_ map[string]any) error {
-	return errors.New("test error")
-}
-
-func (t *ExecutorTestSuite) TestExecute_FailCommand() {
-	fs := afero.NewMemMapFs()
-	stdout := &bytes.Buffer{}
-	stderr := &bytes.Buffer{}
-	hooksAfter := make(executor.HooksAfter)
-
-	executor.RegisterCommand("testcmdfail", func(ectx *executor.ExecutorContext) executor.Command {
-		return &testcmdfail{}
+		_ = exc.Execute(vars)
+		d, _ := io.ReadAll(stdout)
+		c.Assert(string(d), qt.Equals, "Test call one\n")
 	})
 
-	cmds := `
+	t.Run("Execute_FailCommand", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		hooksAfter := make(executor.HooksAfter)
+
+		executor.RegisterCommand("testcmdfail", func(ectx *executor.ExecutorContext) executor.Command {
+			return &testcmdfail{
+				BaseCommand: executor.BaseCommand{
+					Ectx: ectx,
+				},
+			}
+		})
+
+		cmds := `
 commands:
   - type: testcmdfail
     stepName: step_skip_one
     description: Test call one
 `
 
-	logout := logrus.StandardLogger().Out
-	logformatter := logrus.StandardLogger().Formatter
-	logrus.SetOutput(stdout)
-	logrus.SetFormatter(&testutils.SimpleFormatter{})
-	defer func() {
-		logrus.SetOutput(logout)
-		logrus.SetFormatter(logformatter)
-	}()
+		logout := logrus.StandardLogger().Out
+		logformatter := logrus.StandardLogger().Formatter
+		logrus.SetOutput(stdout)
+		logrus.SetFormatter(&testutils.SimpleFormatter{})
+		defer func() {
+			logrus.SetOutput(logout)
+			logrus.SetFormatter(logformatter)
+		}()
 
-	vars := make(map[string]any)
+		vars := make(map[string]any)
 
-	exc, err := executor.NewWithScenario(
-		cmds,
-		executor.WithHooksAfter(hooksAfter),
-		executor.WithStdout(stdout),
-		executor.WithStderr(stderr),
-		executor.WithFS(fs),
-		executor.WithLogger(logrus.StandardLogger()),
-	)
-	t.Require().NoError(err)
-	t.Require().NotNil(exc)
+		exc, err := executor.NewWithScenario(
+			cmds,
+			executor.WithHooksAfter(hooksAfter),
+			executor.WithStdout(stdout),
+			executor.WithStderr(stderr),
+			executor.WithFS(fs),
+			executor.WithLogger(logrus.StandardLogger()),
+		)
+		c.Assert(err, qt.IsNil)
+		c.Assert(exc, qt.IsNotNil)
 
-	err = exc.Execute(vars)
-	t.EqualError(errors.Cause(err), "test error")
-}
+		err = exc.Execute(vars)
+		c.Assert(errors.Cause(err), qt.ErrorMatches, "test error")
+	})
 
-func (t *ExecutorTestSuite) TestMaybeEvalValue() {
-	// valid parsable template
-	val := executor.MaybeEvalValue(`{{ index . "foo" }}`, map[string]any{"foo": "bar"})
-	t.Equal("bar", val)
+	t.Run("MaybeEvalValue", func(t *testing.T) {
+		c := qt.New(t)
+		// valid parsable template
+		val := executor.MaybeEvalValue(`{{ index . "foo" }}`, map[string]any{"foo": "bar"})
+		c.Assert(val, qt.Equals, "bar")
 
-	// invalid template
-	val = executor.MaybeEvalValue(`{{ index . "foo" }`, map[string]any{"foo": "bar"})
-	t.Equal(`{{ index . "foo" }`, val)
+		// invalid template
+		val = executor.MaybeEvalValue(`{{ index . "foo" }`, map[string]any{"foo": "bar"})
+		c.Assert(val, qt.Equals, `{{ index . "foo" }`)
 
-	// non-string value
-	val = executor.MaybeEvalValue(42, map[string]any{"foo": "bar"})
-	t.Equal(42, val)
-}
-
-func TestExecutor(t *testing.T) {
-	suite.Run(t, new(ExecutorTestSuite))
+		// non-string value
+		val = executor.MaybeEvalValue(42, map[string]any{"foo": "bar"})
+		c.Assert(val, qt.Equals, 42)
+	})
 }

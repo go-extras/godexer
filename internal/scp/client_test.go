@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	qt "github.com/frankban/quicktest"
 	"github.com/go-extras/errors"
-	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/go-extras/godexer/internal/scp"
@@ -52,12 +52,12 @@ func genRandomBytes(size int) (blk []byte, err error) {
 	return blk, err
 }
 
-func getScpHandler(t *testing.T, expectedFname string, expectedSize int, uploaded *int32) func(cmd string, ch ssh.Channel) error {
+func getScpHandler(c *qt.C, expectedFname string, expectedSize int, uploaded *int32) func(cmd string, ch ssh.Channel) error {
 	return func(cmd string, ch ssh.Channel) error {
 		if strings.HasPrefix(cmd, "scp -qt") {
 			filePath := cmd[8:]
-			if t != nil {
-				require.Equal(t, expectedFname, filePath)
+			if c != nil {
+				c.Assert(filePath, qt.Equals, expectedFname)
 			}
 
 			// log.Print("got scp request")
@@ -83,8 +83,8 @@ func getScpHandler(t *testing.T, expectedFname string, expectedSize int, uploade
 			}
 			// name := parts[2] // name
 
-			if t != nil {
-				require.Equal(t, expectedSize, size)
+			if c != nil {
+				c.Assert(size, qt.Equals, expectedSize)
 			}
 
 			// log.Printf("mode=%s, size=%d, name=%s", mode, size, name)
@@ -132,27 +132,27 @@ func getScpHandler(t *testing.T, expectedFname string, expectedSize int, uploade
 func TestClient_Copy(t *testing.T) {
 	const dataSize = 5 * 1024 * 1024
 
-	r := require.New(t)
+	c := qt.New(t)
 
 	signer, err := testutils.MakeSigner(key)
-	r.NoError(err)
+	c.Assert(err, qt.IsNil)
 
 	var uploaded int32
 
-	srv := testutils.NewServer(signer, nil, getScpHandler(t, "/remote/path", dataSize, &uploaded))
+	srv := testutils.NewServer(signer, nil, getScpHandler(c, "/remote/path", dataSize, &uploaded))
 	go srv.Start()
 	defer srv.Stop()
 
 	addr := srv.Addr()
 
 	cfg, err := testutils.GetClientConfig("root", key)
-	r.NoError(err)
+	c.Assert(err, qt.IsNil)
 
 	sshClient, err := testutils.CreateConn(addr.IP.String(), strconv.Itoa(addr.Port), cfg)
-	r.NoError(err)
+	c.Assert(err, qt.IsNil)
 
 	session, err := sshClient.NewSession()
-	r.NoError(err)
+	c.Assert(err, qt.IsNil)
 
 	defer session.Close()
 	client := scp.NewClient(sshClient.Conn, session)
@@ -160,10 +160,10 @@ func TestClient_Copy(t *testing.T) {
 	data, _ := genRandomBytes(dataSize)
 	buf := bytes.NewReader(data)
 	err = client.Copy(buf, "/remote/path", "0644", int64(len(data)))
-	r.NoError(err)
+	c.Assert(err, qt.IsNil)
 
 	actualUploaded := atomic.LoadInt32(&uploaded)
-	r.Equal(int32(1), actualUploaded)
+	c.Assert(actualUploaded, qt.Equals, int32(1))
 }
 
 func checkerr(err error) {

@@ -5,18 +5,15 @@ import (
 	"testing"
 	"time"
 
+	qt "github.com/frankban/quicktest"
 	"github.com/spf13/afero"
-	"github.com/stretchr/testify/suite"
 
 	"github.com/go-extras/godexer"
 	"github.com/go-extras/godexer/internal/logger"
 )
 
-type SleepTestSuite struct {
-	suite.Suite
-}
-
-func (t *SleepTestSuite) TestExecute() {
+func TestSleepExecute(t *testing.T) {
+	c := qt.New(t)
 	fs := afero.NewMemMapFs()
 
 	cmd := executor.NewSleepCommand(&executor.ExecutorContext{
@@ -29,13 +26,9 @@ func (t *SleepTestSuite) TestExecute() {
 	ex.Seconds = 10
 
 	executor.TimeSleep = func(d time.Duration) {
-		t.Equal(float64(10), d.Seconds())
+		c.Assert(d.Seconds(), qt.Equals, float64(10))
 	}
 	defer func() { executor.TimeSleep = time.Sleep }()
 	err := ex.Execute(nil)
-	t.NoError(err)
-}
-
-func TestSleep(t *testing.T) {
-	suite.Run(t, new(SleepTestSuite))
+	c.Assert(err, qt.IsNil)
 }
