@@ -155,7 +155,9 @@ func (a *Client) Copy(r io.Reader, remotePath, permissions string, size int64) e
 	return nil
 }
 
-func (a *Client) Close() {
-	a.session.Close()
-	a.conn.Close()
+func (a *Client) Close() error {
+	return errors.Join(
+		a.session.Close(),
+		a.conn.Close(),
+	)
 }

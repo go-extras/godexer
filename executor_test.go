@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -51,11 +51,11 @@ func TestExecRunnerHelper(t *testing.T) {
 }
 
 type testcmd struct {
-	executor.MessageCommand
+	godexer.MessageCommand
 }
 
 type testcmdfail struct {
-	executor.BaseCommand
+	godexer.BaseCommand
 }
 
 func (*testcmdfail) Execute(_ map[string]any) error {
@@ -113,7 +113,7 @@ func TestExecutor(t *testing.T) {
 		fs := afero.NewMemMapFs()
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
-		hooksAfter := make(executor.HooksAfter)
+		hooksAfter := make(godexer.HooksAfter)
 		hooksAfter["f1"] = func(variables map[string]any) error {
 			variables["hookvar"] = "hookvalue"
 			return nil
@@ -129,14 +129,14 @@ func TestExecutor(t *testing.T) {
 		}()
 
 		// a way to mock the sleep function
-		executor.TimeSleep = func(d time.Duration) {
+		godexer.TimeSleep = func(d time.Duration) {
 			c.Assert(d.Seconds(), qt.Equals, float64(10))
 		}
-		defer func() { executor.TimeSleep = time.Sleep }()
+		defer func() { godexer.TimeSleep = time.Sleep }()
 
 		// fake exec command to avoid running the real shell commands
-		executor.ExecCommandFn = fakeExecCommand
-		defer func() { executor.ExecCommandFn = exec.Command }()
+		godexer.ExecCommandFn = fakeExecCommand
+		defer func() { godexer.ExecCommandFn = exec.Command }()
 
 		// executor vars
 		vars := map[string]any{
@@ -147,14 +147,14 @@ func TestExecutor(t *testing.T) {
 		// ... test starts here ...
 
 		// load executor
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			executorExecuteScript,
-			executor.WithHooksAfter(hooksAfter),
-			executor.WithStdout(stdout),
-			executor.WithStderr(stderr),
-			executor.WithFS(fs),
-			executor.WithDefaultEvaluatorFunctions(),
-			executor.WithLogger(logger),
+			godexer.WithHooksAfter(hooksAfter),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(fs),
+			godexer.WithDefaultEvaluatorFunctions(),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		c.Assert(exc, qt.IsNotNil)
@@ -189,7 +189,7 @@ foo!`)
 		fs := afero.NewMemMapFs()
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
-		hooksAfter := make(executor.HooksAfter)
+		hooksAfter := make(godexer.HooksAfter)
 
 		cmds := `
 commands:
@@ -210,20 +210,20 @@ commands:
 
 		vars := make(map[string]any)
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			cmds,
-			executor.WithHooksAfter(hooksAfter),
-			executor.WithStdout(stdout),
-			executor.WithStderr(stderr),
-			executor.WithFS(fs),
-			executor.WithEvaluatorFunction("test", func(args ...any) (any, error) {
+			godexer.WithHooksAfter(hooksAfter),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(fs),
+			godexer.WithEvaluatorFunction("test", func(args ...any) (any, error) {
 				if args[0].(string) == "foo" {
 					return "bar", nil
 				}
 
 				return "", nil
 			}),
-			executor.WithLogger(logrus.StandardLogger()),
+			godexer.WithLogger(logrus.StandardLogger()),
 		)
 
 		c.Assert(err, qt.IsNil)
@@ -239,7 +239,7 @@ commands:
 		fs := afero.NewMemMapFs()
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
-		hooksAfter := make(executor.HooksAfter)
+		hooksAfter := make(godexer.HooksAfter)
 
 		cmds := `
 commands:
@@ -260,12 +260,12 @@ commands:
 
 		vars := make(map[string]any)
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			cmds,
-			executor.WithHooksAfter(hooksAfter),
-			executor.WithStdout(stdout),
-			executor.WithStderr(stderr),
-			executor.WithFS(fs),
+			godexer.WithHooksAfter(hooksAfter),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(fs),
 		)
 		c.Assert(err, qt.IsNil)
 		c.Assert(exc, qt.IsNotNil)
@@ -279,7 +279,7 @@ commands:
 		fs := afero.NewMemMapFs()
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
-		hooksAfter := make(executor.HooksAfter)
+		hooksAfter := make(godexer.HooksAfter)
 
 		cmds := `
 commands:
@@ -297,12 +297,12 @@ commands:
 			logrus.SetFormatter(logformatter)
 		}()
 
-		_, err := executor.NewWithScenario(
+		_, err := godexer.NewWithScenario(
 			cmds,
-			executor.WithHooksAfter(hooksAfter),
-			executor.WithStdout(stdout),
-			executor.WithStderr(stderr),
-			executor.WithFS(fs),
+			godexer.WithHooksAfter(hooksAfter),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(fs),
 		)
 		c.Assert(err, qt.ErrorMatches, "invalid command type: \"brambora\"")
 	})
@@ -312,12 +312,12 @@ commands:
 		fs := afero.NewMemMapFs()
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
-		hooksAfter := make(executor.HooksAfter)
+		hooksAfter := make(godexer.HooksAfter)
 
-		executor.RegisterCommand("testcmd", func(ectx *executor.ExecutorContext) executor.Command {
+		godexer.RegisterCommand("testcmd", func(ectx *godexer.ExecutorContext) godexer.Command {
 			return &testcmd{
-				MessageCommand: executor.MessageCommand{
-					BaseCommand: executor.BaseCommand{
+				MessageCommand: godexer.MessageCommand{
+					BaseCommand: godexer.BaseCommand{
 						Ectx: ectx,
 					},
 				},
@@ -342,13 +342,13 @@ commands:
 
 		vars := make(map[string]any)
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			cmds,
-			executor.WithHooksAfter(hooksAfter),
-			executor.WithStdout(stdout),
-			executor.WithStderr(stderr),
-			executor.WithFS(fs),
-			executor.WithLogger(logrus.StandardLogger()),
+			godexer.WithHooksAfter(hooksAfter),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(fs),
+			godexer.WithLogger(logrus.StandardLogger()),
 		)
 		c.Assert(err, qt.IsNil)
 		c.Assert(exc, qt.IsNotNil)
@@ -363,11 +363,11 @@ commands:
 		fs := afero.NewMemMapFs()
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
-		hooksAfter := make(executor.HooksAfter)
+		hooksAfter := make(godexer.HooksAfter)
 
-		executor.RegisterCommand("testcmdfail", func(ectx *executor.ExecutorContext) executor.Command {
+		godexer.RegisterCommand("testcmdfail", func(ectx *godexer.ExecutorContext) godexer.Command {
 			return &testcmdfail{
-				BaseCommand: executor.BaseCommand{
+				BaseCommand: godexer.BaseCommand{
 					Ectx: ectx,
 				},
 			}
@@ -391,13 +391,13 @@ commands:
 
 		vars := make(map[string]any)
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			cmds,
-			executor.WithHooksAfter(hooksAfter),
-			executor.WithStdout(stdout),
-			executor.WithStderr(stderr),
-			executor.WithFS(fs),
-			executor.WithLogger(logrus.StandardLogger()),
+			godexer.WithHooksAfter(hooksAfter),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(fs),
+			godexer.WithLogger(logrus.StandardLogger()),
 		)
 		c.Assert(err, qt.IsNil)
 		c.Assert(exc, qt.IsNotNil)
@@ -409,15 +409,15 @@ commands:
 	t.Run("MaybeEvalValue", func(t *testing.T) {
 		c := qt.New(t)
 		// valid parsable template
-		val := executor.MaybeEvalValue(`{{ index . "foo" }}`, map[string]any{"foo": "bar"})
+		val := godexer.MaybeEvalValue(`{{ index . "foo" }}`, map[string]any{"foo": "bar"})
 		c.Assert(val, qt.Equals, "bar")
 
 		// invalid template
-		val = executor.MaybeEvalValue(`{{ index . "foo" }`, map[string]any{"foo": "bar"})
+		val = godexer.MaybeEvalValue(`{{ index . "foo" }`, map[string]any{"foo": "bar"})
 		c.Assert(val, qt.Equals, `{{ index . "foo" }`)
 
 		// non-string value
-		val = executor.MaybeEvalValue(42, map[string]any{"foo": "bar"})
+		val = godexer.MaybeEvalValue(42, map[string]any{"foo": "bar"})
 		c.Assert(val, qt.Equals, 42)
 	})
 }

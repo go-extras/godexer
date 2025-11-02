@@ -29,7 +29,7 @@ func escapeArgs(args []string) (result string) {
 }
 
 type ExecCommand struct {
-	executor.BaseCommand
+	godexer.BaseCommand
 	sshClient      *ssh.Client
 	stdout         io.Writer
 	stderr         io.Writer
@@ -46,13 +46,13 @@ type ExecCommand struct {
 	Delay    int // seconds
 }
 
-func NewSSHExecCommand(sshClient *ssh.Client, stdout, stderr io.Writer) func(ectx *executor.ExecutorContext) executor.Command {
-	return func(ectx *executor.ExecutorContext) executor.Command {
+func NewSSHExecCommand(sshClient *ssh.Client, stdout, stderr io.Writer) func(ectx *godexer.ExecutorContext) godexer.Command {
+	return func(ectx *godexer.ExecutorContext) godexer.Command {
 		return &ExecCommand{
 			sshClient: sshClient,
 			stdout:    stdout,
 			stderr:    stderr,
-			BaseCommand: executor.BaseCommand{
+			BaseCommand: godexer.BaseCommand{
 				Ectx: ectx,
 			},
 		}
@@ -77,7 +77,7 @@ func (r *ExecCommand) Execute(variables map[string]any) error {
 	}
 	defer session.Close()
 
-	var buf executor.Buffer
+	var buf godexer.Buffer
 	r.setupSessionIO(session, &buf)
 
 	if err := r.setEnvironment(session, variables); err != nil {
@@ -95,7 +95,7 @@ func (r *ExecCommand) Execute(variables map[string]any) error {
 func (r *ExecCommand) prepareCommand(variables map[string]any) (string, error) {
 	var cmds []string
 	for _, v := range r.Cmd {
-		cmds = append(cmds, executor.MaybeEvalValue(v, variables).(string))
+		cmds = append(cmds, godexer.MaybeEvalValue(v, variables).(string))
 	}
 
 	cmd := escapeArgs(cmds)
@@ -114,7 +114,7 @@ func (r *ExecCommand) printCommand(cmd string, variables map[string]any) {
 	case "-":
 		fmt.Fprintf(r.stdout, "%s$ %s\n", addr, "[command redacted]")
 	default:
-		cmdRedact, ok := executor.MaybeEvalValue(r.CmdRedact, variables).(string)
+		cmdRedact, ok := godexer.MaybeEvalValue(r.CmdRedact, variables).(string)
 		if !ok {
 			cmdRedact = "[invalid redact value]"
 		}
@@ -141,13 +141,13 @@ func (r *ExecCommand) createSession() (*ssh.Session, error) {
 	return session, nil
 }
 
-func (r *ExecCommand) setupSessionIO(session *ssh.Session, buf *executor.Buffer) {
+func (r *ExecCommand) setupSessionIO(session *ssh.Session, buf *godexer.Buffer) {
 	if r.Variable == "" {
 		session.Stdout = r.Ectx.Stdout
 		session.Stderr = r.Ectx.Stderr
 	} else {
-		session.Stdout = executor.NewCombinedWriter([]io.Writer{r.Ectx.Stdout, buf})
-		session.Stderr = executor.NewCombinedWriter([]io.Writer{r.Ectx.Stderr, buf})
+		session.Stdout = godexer.NewCombinedWriter([]io.Writer{r.Ectx.Stdout, buf})
+		session.Stderr = godexer.NewCombinedWriter([]io.Writer{r.Ectx.Stderr, buf})
 	}
 }
 
@@ -157,14 +157,14 @@ func (r *ExecCommand) setEnvironment(session *ssh.Session, variables map[string]
 	}
 
 	for k, v := range r.Env {
-		if err := session.Setenv(k, executor.MaybeEvalValue(v, variables).(string)); err != nil {
+		if err := session.Setenv(k, godexer.MaybeEvalValue(v, variables).(string)); err != nil {
 			return errors.Wrap(err, "failed to set ssh environment variable")
 		}
 	}
 	return nil
 }
 
-func (r *ExecCommand) runCommand(session *ssh.Session, cmd string, buf *executor.Buffer, variables map[string]any) error {
+func (r *ExecCommand) runCommand(session *ssh.Session, cmd string, buf *godexer.Buffer, variables map[string]any) error {
 	if err := session.Start(cmd); err != nil {
 		return err
 	}

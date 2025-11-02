@@ -74,18 +74,18 @@ func TestWithDefaultEvaluatorFunctions(t *testing.T) {
 			logger.SetOutput(&memlog)
 			logger.SetFormatter(&testutils.SimpleFormatter{})
 
-			commands := make(map[string]func(ctx *executor.ExecutorContext) executor.Command)
-			commands["message"] = executor.NewMessageCommand
+			commands := make(map[string]func(ctx *godexer.ExecutorContext) godexer.Command)
+			commands["message"] = godexer.NewMessageCommand
 
 			c := qt.New(t)
-			ex, err := executor.NewWithScenario(
+			ex, err := godexer.NewWithScenario(
 				scenario,
 				version.WithVersionFuncs(),
-				executor.WithStdout(os.Stdout),
-				executor.WithStderr(os.Stderr),
-				executor.WithFS(fs),
-				executor.WithCommandTypes(commands),
-				executor.WithLogger(logger),
+				godexer.WithStdout(os.Stdout),
+				godexer.WithStderr(os.Stderr),
+				godexer.WithFS(fs),
+				godexer.WithCommandTypes(commands),
+				godexer.WithLogger(logger),
 			)
 			c.Assert(err, qt.IsNil)
 
@@ -144,18 +144,18 @@ func TestWithDefaultEvaluatorFunctions(t *testing.T) {
 			logger.SetOutput(&memlog)
 			logger.SetFormatter(&testutils.SimpleFormatter{})
 
-			commands := make(map[string]func(ctx *executor.ExecutorContext) executor.Command)
-			commands["message"] = executor.NewMessageCommand
+			commands := make(map[string]func(ctx *godexer.ExecutorContext) godexer.Command)
+			commands["message"] = godexer.NewMessageCommand
 
 			c := qt.New(t)
-			ex, err := executor.NewWithScenario(
+			ex, err := godexer.NewWithScenario(
 				scenario,
 				version.WithVersionFuncs(),
-				executor.WithStdout(os.Stdout),
-				executor.WithStderr(os.Stderr),
-				executor.WithFS(fs),
-				executor.WithCommandTypes(commands),
-				executor.WithLogger(logger),
+				godexer.WithStdout(os.Stdout),
+				godexer.WithStderr(os.Stderr),
+				godexer.WithFS(fs),
+				godexer.WithCommandTypes(commands),
+				godexer.WithLogger(logger),
 			)
 			c.Assert(err, qt.IsNil)
 
@@ -204,18 +204,18 @@ func TestWithDefaultEvaluatorFunctions(t *testing.T) {
 			logger.SetOutput(&memlog)
 			logger.SetFormatter(&testutils.SimpleFormatter{})
 
-			commands := make(map[string]func(ctx *executor.ExecutorContext) executor.Command)
-			commands["message"] = executor.NewMessageCommand
+			commands := make(map[string]func(ctx *godexer.ExecutorContext) godexer.Command)
+			commands["message"] = godexer.NewMessageCommand
 
 			c := qt.New(t)
-			ex, err := executor.NewWithScenario(
+			ex, err := godexer.NewWithScenario(
 				scenario,
 				version.WithVersionFuncs(),
-				executor.WithStdout(os.Stdout),
-				executor.WithStderr(os.Stderr),
-				executor.WithFS(fs),
-				executor.WithCommandTypes(commands),
-				executor.WithLogger(logger),
+				godexer.WithStdout(os.Stdout),
+				godexer.WithStderr(os.Stderr),
+				godexer.WithFS(fs),
+				godexer.WithCommandTypes(commands),
+				godexer.WithLogger(logger),
 			)
 			c.Assert(err, qt.IsNil)
 

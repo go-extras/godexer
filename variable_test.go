@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -15,12 +15,12 @@ func TestVariable(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewVariableCommand(&executor.ExecutorContext{
+		cmd := godexer.NewVariableCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		ex := cmd.(*executor.VariableCommand)
+		ex := cmd.(*godexer.VariableCommand)
 		ex.Variable = "foo"
 		ex.Value = "{{ index .  \"var1\" }}{{ index .  \"var2\" }}"
 
@@ -37,12 +37,12 @@ func TestVariable(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewVariableCommand(&executor.ExecutorContext{
+		cmd := godexer.NewVariableCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		ex := cmd.(*executor.VariableCommand)
+		ex := cmd.(*godexer.VariableCommand)
 		ex.Variable = "foo"
 		ex.Value = 1
 
@@ -59,12 +59,12 @@ func TestVariable(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewVariableCommand(&executor.ExecutorContext{
+		cmd := godexer.NewVariableCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		ex := cmd.(*executor.VariableCommand)
+		ex := cmd.(*godexer.VariableCommand)
 		ex.Variable = "foo"
 
 		m := map[string]any{
@@ -80,12 +80,12 @@ func TestVariable(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewVariableCommand(&executor.ExecutorContext{
+		cmd := godexer.NewVariableCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		ex := cmd.(*executor.VariableCommand)
+		ex := cmd.(*godexer.VariableCommand)
 		ex.Value = "dummy"
 
 		m := map[string]any{

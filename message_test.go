@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -14,12 +14,12 @@ func TestMessageExecute(t *testing.T) {
 	c := qt.New(t)
 	fs := afero.NewMemMapFs()
 
-	cmd := executor.NewMessageCommand(&executor.ExecutorContext{
+	cmd := godexer.NewMessageCommand(&godexer.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*executor.MessageCommand)
+	ex := cmd.(*godexer.MessageCommand)
 	ex.Description = "data {{ index .  \"var1\" }}{{ index .  \"var2\" }}"
 
 	err := ex.Execute(map[string]any{

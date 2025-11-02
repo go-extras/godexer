@@ -61,9 +61,9 @@ commands:
 `
 
 func main() {
-	exc, err := executor.NewWithScenario(
+	exc, err := godexer.NewWithScenario(
 		commands,
-		executor.WithDefaultEvaluatorFunctions(),
+		godexer.WithDefaultEvaluatorFunctions(),
 	)
 	if err != nil {
 		panic(err)

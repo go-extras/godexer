@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -21,18 +21,18 @@ func TestExec(t *testing.T) {
 		var stdout bytes.Buffer
 		var stderr bytes.Buffer
 
-		cmd := executor.NewExecCommand(&executor.ExecutorContext{
+		cmd := godexer.NewExecCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &stdout,
 			Stderr: &stderr,
 		})
-		ex := cmd.(*executor.ExecCommand)
+		ex := cmd.(*godexer.ExecCommand)
 		ex.Cmd = []string{"test"}
 		ex.Ectx.Logger = &logger.Logger{}
 		ex.Env = []string{"DUMMY=1"}
 
-		executor.ExecCommandFn = fakeExecCommand
-		defer func() { executor.ExecCommandFn = exec.Command }()
+		godexer.ExecCommandFn = fakeExecCommand
+		defer func() { godexer.ExecCommandFn = exec.Command }()
 		vars := make(map[string]any)
 		err := ex.Execute(vars)
 		c.Assert(err, qt.IsNil)
@@ -49,19 +49,19 @@ func TestExec(t *testing.T) {
 		var stdout bytes.Buffer
 		var stderr bytes.Buffer
 
-		cmd := executor.NewExecCommand(&executor.ExecutorContext{
+		cmd := godexer.NewExecCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &stdout,
 			Stderr: &stderr,
 		})
-		ex := cmd.(*executor.ExecCommand)
+		ex := cmd.(*godexer.ExecCommand)
 		ex.Cmd = []string{"test"}
 		ex.Ectx.Logger = &logger.Logger{}
 		ex.Variable = "myvar"
 		ex.Env = []string{"DUMMY=1"}
 
-		executor.ExecCommandFn = fakeExecCommand
-		defer func() { executor.ExecCommandFn = exec.Command }()
+		godexer.ExecCommandFn = fakeExecCommand
+		defer func() { godexer.ExecCommandFn = exec.Command }()
 		vars := make(map[string]any)
 		err := ex.Execute(vars)
 		c.Assert(err, qt.IsNil)
@@ -79,20 +79,20 @@ func TestExec(t *testing.T) {
 		var stdout bytes.Buffer
 		var stderr bytes.Buffer
 
-		cmd := executor.NewExecCommand(&executor.ExecutorContext{
+		cmd := godexer.NewExecCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &stdout,
 			Stderr: &stderr,
 		})
-		ex := cmd.(*executor.ExecCommand)
+		ex := cmd.(*godexer.ExecCommand)
 		ex.Cmd = []string{"error"}
 		ex.Ectx.Logger = &logger.Logger{}
 		ex.AllowFail = true
 		ex.StepName = "test"
 		ex.Env = []string{"DUMMY=1"}
 
-		executor.ExecCommandFn = fakeExecCommand
-		defer func() { executor.ExecCommandFn = exec.Command }()
+		godexer.ExecCommandFn = fakeExecCommand
+		defer func() { godexer.ExecCommandFn = exec.Command }()
 		vars := make(map[string]any)
 		err := ex.Execute(vars)
 		c.Assert(err, qt.IsNil)
@@ -107,16 +107,16 @@ func TestExec(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewExecCommand(&executor.ExecutorContext{
+		cmd := godexer.NewExecCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		ex := cmd.(*executor.ExecCommand)
+		ex := cmd.(*godexer.ExecCommand)
 		ex.StepName = "dummy"
 
-		executor.ExecCommandFn = fakeExecCommand
-		defer func() { executor.ExecCommandFn = exec.Command }()
+		godexer.ExecCommandFn = fakeExecCommand
+		defer func() { godexer.ExecCommandFn = exec.Command }()
 		err := ex.Execute(nil)
 		c.Assert(err, qt.ErrorMatches, "command \"dummy\" is empty")
 	})
@@ -127,18 +127,18 @@ func TestExec(t *testing.T) {
 
 		var stdout bytes.Buffer
 		var stderr bytes.Buffer
-		cmd := executor.NewExecCommand(&executor.ExecutorContext{
+		cmd := godexer.NewExecCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &stdout,
 			Stderr: &stderr,
 		})
-		ex := cmd.(*executor.ExecCommand)
+		ex := cmd.(*godexer.ExecCommand)
 		ex.Cmd = []string{"{{ index .  \"var1\" }}{{ index .  \"var2\" }}"}
 		ex.Ectx.Logger = &logger.Logger{}
 		ex.Env = []string{"DUMMY=1"}
 
-		executor.ExecCommandFn = fakeExecCommand
-		defer func() { executor.ExecCommandFn = exec.Command }()
+		godexer.ExecCommandFn = fakeExecCommand
+		defer func() { godexer.ExecCommandFn = exec.Command }()
 		err := ex.Execute(map[string]any{
 			"var1": "val1",
 			"var2": "val2",

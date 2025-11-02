@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -17,12 +17,12 @@ func TestWriteFile(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewWriterFileCommand(&executor.ExecutorContext{
+		cmd := godexer.NewWriterFileCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		ex := cmd.(*executor.WriteFileCommand)
+		ex := cmd.(*godexer.WriteFileCommand)
 		ex.File = "dummy"
 		ex.Contents = "data {{ index .  \"var1\" }}{{ index .  \"var2\" }}"
 		ex.Ectx.Logger = &logger.Logger{}
@@ -43,12 +43,12 @@ func TestWriteFile(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewWriterFileCommand(&executor.ExecutorContext{
+		cmd := godexer.NewWriterFileCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		ex := cmd.(*executor.WriteFileCommand)
+		ex := cmd.(*godexer.WriteFileCommand)
 		ex.Contents = "data {{ index .  \"var1\" }}{{ index .  \"var2\" }}"
 		ex.StepName = "step"
 

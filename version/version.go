@@ -43,8 +43,8 @@ func parseArgs(args []any) (v1, v2 *version.Version, err error) {
 // - `version_gt(version1, version2 string) (bool, error)`
 // - `version_gte(version1, version2 string) (bool, error)`
 // - `version_eq(version1, version2 string) (bool, error)`
-func WithVersionFuncs() func(*executor.Executor) {
-	return func(ex *executor.Executor) {
+func WithVersionFuncs() func(*godexer.Executor) {
+	return func(ex *godexer.Executor) {
 		ex.RegisterEvaluatorFunction("version_lt", func(args ...any) (any, error) {
 			v1, v2, err := parseArgs(args)
 			if err != nil {

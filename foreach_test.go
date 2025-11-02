@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -24,28 +24,28 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
+		ex := cmd.(*godexer.ForeachCommand)
 		ex.RawCommands = []json.RawMessage{
 			[]byte(`{"type": "message","stepName": "test","description": "k={{.key}}"}`),
 			[]byte(`{"type": "message","stepName": "test2","description": "v={{.value}}"}`),
 		}
 		ex.Iterable = []int{1, 2, 3}
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc
@@ -65,28 +65,28 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
+		ex := cmd.(*godexer.ForeachCommand)
 		ex.RawCommands = []json.RawMessage{
 			[]byte(`{"type": "message","stepName": "test","description": "k={{.key}}"}`),
 			[]byte(`{"type": "message","stepName": "test2","description": "v={{.value}}"}`),
 		}
 		ex.Iterable = map[string]string{"dummy1": "yummy1", "dummy2": "yummy2", "dummy3": "yummy3"}
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc
@@ -108,28 +108,28 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
+		ex := cmd.(*godexer.ForeachCommand)
 		ex.RawCommands = []json.RawMessage{
 			[]byte(`{"type": "message","stepName": "test","description": "k={{.key}}"}`),
 			[]byte(`{"type": "message","stepName": "test2","description": "v={{.value}}"}`),
 		}
 		ex.Variable = "slice"
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc
@@ -150,28 +150,28 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
+		ex := cmd.(*godexer.ForeachCommand)
 		ex.RawCommands = []json.RawMessage{
 			[]byte(`{"type": "message","stepName": "test","description": "k={{.key}}"}`),
 			[]byte(`{"type": "message","stepName": "test2","description": "v={{.value}}"}`),
 		}
 		ex.Variable = "map"
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc
@@ -194,15 +194,15 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		ex := cmd.(*godexer.ForeachCommand)
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
 		variables := make(map[string]any)
 		err := ex.Execute(variables)
@@ -219,23 +219,23 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		ex := cmd.(*godexer.ForeachCommand)
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc
@@ -255,24 +255,24 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
+		ex := cmd.(*godexer.ForeachCommand)
 		ex.Variable = "dummy"
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc
@@ -292,24 +292,24 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
+		ex := cmd.(*godexer.ForeachCommand)
 		ex.Variable = "dummy"
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc
@@ -330,24 +330,24 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
+		ex := cmd.(*godexer.ForeachCommand)
 		ex.Variable = "dummy"
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc
@@ -368,24 +368,24 @@ func TestForeach(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewForeachCommand(&executor.ExecutorContext{
+		cmd := godexer.NewForeachCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.ForeachCommand)
+		ex := cmd.(*godexer.ForeachCommand)
 		ex.Variable = "dummy"
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc

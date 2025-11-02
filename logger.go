@@ -1,4 +1,4 @@
-package executor
+package godexer
 
 // Logger is an interface that is compatible with logrus, but doesn't require logrus to be used
 type Logger interface {

@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -16,12 +16,12 @@ func TestPassword(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewPassword(&executor.ExecutorContext{
+		cmd := godexer.NewPassword(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		pwd := cmd.(*executor.PasswordCommand)
+		pwd := cmd.(*godexer.PasswordCommand)
 		pwd.Variable = "foo"
 		vars := make(map[string]any)
 		err := pwd.Execute(vars)
@@ -33,12 +33,12 @@ func TestPassword(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewPassword(&executor.ExecutorContext{
+		cmd := godexer.NewPassword(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		pwd := cmd.(*executor.PasswordCommand)
+		pwd := cmd.(*godexer.PasswordCommand)
 		pwd.Variable = "foo"
 		pwd.Length = 10
 		vars := make(map[string]any)
@@ -51,12 +51,12 @@ func TestPassword(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewPassword(&executor.ExecutorContext{
+		cmd := godexer.NewPassword(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		pwd := cmd.(*executor.PasswordCommand)
+		pwd := cmd.(*godexer.PasswordCommand)
 		pwd.Variable = "foo"
 		pwd.Length = 5
 		vars := make(map[string]any)
@@ -69,12 +69,12 @@ func TestPassword(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewPassword(&executor.ExecutorContext{
+		cmd := godexer.NewPassword(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		pwd := cmd.(*executor.PasswordCommand)
+		pwd := cmd.(*godexer.PasswordCommand)
 		vars := make(map[string]any)
 		err := pwd.Execute(vars)
 		c.Assert(err, qt.ErrorMatches, "password: variable name cannot be empty")
@@ -84,12 +84,12 @@ func TestPassword(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 
-		cmd := executor.NewPassword(&executor.ExecutorContext{
+		cmd := godexer.NewPassword(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 		})
-		pwd := cmd.(*executor.PasswordCommand)
+		pwd := cmd.(*godexer.PasswordCommand)
 		pwd.Variable = "foo"
 		pwd.Charset = "abcd"
 		vars := make(map[string]any)

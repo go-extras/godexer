@@ -1,4 +1,4 @@
-package executor
+package godexer
 
 import (
 	"fmt"
@@ -107,7 +107,7 @@ func (r *ExecCommand) Execute(variables map[string]any) error {
 	}
 
 	if err != nil {
-		r.Ectx.Logger.Infof("Got an error and attepts = %d", r.Attempts)
+		r.Ectx.Logger.Infof("Got an error and attempts = %d", r.Attempts)
 	}
 
 	if r.Attempts > 1 {

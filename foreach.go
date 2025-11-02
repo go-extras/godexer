@@ -1,4 +1,4 @@
-package executor
+package godexer
 
 import (
 	"encoding/json"

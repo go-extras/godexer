@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -24,27 +24,27 @@ func TestSubExecute(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewSubExecuteCommand(&executor.ExecutorContext{
+		cmd := godexer.NewSubExecuteCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.SubExecuteCommand)
+		ex := cmd.(*godexer.SubExecuteCommand)
 		ex.RawCommands = []json.RawMessage{
 			[]byte(`{"type": "message","stepName": "test","description": "Some kind of test"}`),
 			[]byte(`{"type": "message","stepName": "test2","description": "Another kind of test"}`),
 		}
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			"",
-			executor.WithStdout(os.Stdout),
-			executor.WithStderr(os.Stderr),
-			executor.WithFS(fs),
-			executor.WithCommandTypes(commands),
-			executor.WithLogger(logger),
+			godexer.WithStdout(os.Stdout),
+			godexer.WithStderr(os.Stderr),
+			godexer.WithFS(fs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 		ex.Ectx.Executor = exc
@@ -64,15 +64,15 @@ func TestSubExecute(t *testing.T) {
 		logger.SetOutput(memlog)
 		logger.SetFormatter(&testutils.SimpleFormatter{})
 
-		cmd := executor.NewSubExecuteCommand(&executor.ExecutorContext{
+		cmd := godexer.NewSubExecuteCommand(&godexer.ExecutorContext{
 			Fs:     fs,
 			Stdout: &bytes.Buffer{},
 			Stderr: &bytes.Buffer{},
 			Logger: logger,
 		})
-		ex := cmd.(*executor.SubExecuteCommand)
-		commands := make(map[string]func(*executor.ExecutorContext) executor.Command)
-		commands["message"] = executor.NewMessageCommand
+		ex := cmd.(*godexer.SubExecuteCommand)
+		commands := make(map[string]func(*godexer.ExecutorContext) godexer.Command)
+		commands["message"] = godexer.NewMessageCommand
 
 		variables := make(map[string]any)
 		err := ex.Execute(variables)

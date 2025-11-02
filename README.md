@@ -1,8 +1,12 @@
 Executor Library
 ================
 
+Godexer is a Go library for executing command pipelines using YAML configuration syntax. The library provides a clean,
+extensible framework for defining and executing various types of commands with template support, conditional execution,
+and error handling.
+
 This library is designed to run configure and run command pipelines. It uses simple YAML syntax, lets you register
-custom command types, add post call hooks, use templates to insert your varibles inside other varibles or messages and
+custom command types, add post call hooks, use templates to insert your varibles inside other variables or messages and
 define requirements so that some steps could be skipped depending on the conditions.
 
 ## Basic usage

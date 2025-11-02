@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -15,13 +15,13 @@ func TestCommandAwareError(t *testing.T) {
 	c := qt.New(t)
 	fs := afero.NewMemMapFs()
 
-	cmd := executor.NewMessageCommand(&executor.ExecutorContext{
+	cmd := godexer.NewMessageCommand(&godexer.ExecutorContext{
 		Fs:     fs,
 		Stdout: &bytes.Buffer{},
 		Stderr: &bytes.Buffer{},
 	})
-	ex := cmd.(*executor.MessageCommand)
-	ex.SetDebugInfo(&executor.CommandDebugInfo{
+	ex := cmd.(*godexer.MessageCommand)
+	ex.SetDebugInfo(&godexer.CommandDebugInfo{
 		ID:       4242,
 		Contents: []byte("{}"),
 	})
@@ -30,7 +30,7 @@ func TestCommandAwareError(t *testing.T) {
 		"var1": "value1",
 	}
 
-	cmderr := executor.NewCommandAwareError(errors.New("test error"), ex, variables)
+	cmderr := godexer.NewCommandAwareError(errors.New("test error"), ex, variables)
 	c.Assert(cmderr.Error(), qt.Equals, "command failed (stepName=__step_no_4242, commandId=4242, commandType=MessageCommand): test error")
 	c.Assert(cmderr.Variables(), qt.DeepEquals, map[string]any{
 		"var1": "value1",

@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"bytes"
@@ -44,8 +44,8 @@ func TestInclude(t *testing.T) {
       var2: value2
 `
 
-		commands := executor.GetRegisteredCommands()
-		commands["include"] = executor.NewIncludeCommand(scripts)
+		commands := godexer.GetRegisteredCommands()
+		commands["include"] = godexer.NewIncludeCommand(scripts)
 
 		// load the executor instance
 		memfs := afero.NewMemMapFs() // will not be used, but is required by the executor
@@ -65,14 +65,14 @@ func TestInclude(t *testing.T) {
 			logrus.SetFormatter(logformatter)
 		}()
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			script,
-			executor.WithStdout(stdout),
-			executor.WithStderr(stderr),
-			executor.WithFS(memfs),
-			executor.WithCommandTypes(commands),
-			executor.WithDefaultEvaluatorFunctions(),
-			executor.WithLogger(logger),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(memfs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithDefaultEvaluatorFunctions(),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 
@@ -125,8 +125,8 @@ func TestInclude(t *testing.T) {
       var2: value2
 `
 
-		commands := executor.GetRegisteredCommands()
-		commands["include"] = executor.NewIncludeCommand(scripts)
+		commands := godexer.GetRegisteredCommands()
+		commands["include"] = godexer.NewIncludeCommand(scripts)
 
 		// load the executor instance
 		memfs := afero.NewMemMapFs() // will not be used, but is required by the executor
@@ -146,14 +146,14 @@ func TestInclude(t *testing.T) {
 			logrus.SetFormatter(logformatter)
 		}()
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			script,
-			executor.WithStdout(stdout),
-			executor.WithStderr(stderr),
-			executor.WithFS(memfs),
-			executor.WithCommandTypes(commands),
-			executor.WithDefaultEvaluatorFunctions(),
-			executor.WithLogger(logger),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(memfs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithDefaultEvaluatorFunctions(),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 
@@ -208,8 +208,8 @@ func TestInclude(t *testing.T) {
       var2: value2
 `
 
-		commands := executor.GetRegisteredCommands()
-		commands["include"] = executor.NewIncludeCommandWithBasePath(scripts, "script")
+		commands := godexer.GetRegisteredCommands()
+		commands["include"] = godexer.NewIncludeCommandWithBasePath(scripts, "script")
 
 		// load the executor instance
 		memfs := afero.NewMemMapFs() // will not be used, but is required by the executor
@@ -229,14 +229,14 @@ func TestInclude(t *testing.T) {
 			logrus.SetFormatter(logformatter)
 		}()
 
-		exc, err := executor.NewWithScenario(
+		exc, err := godexer.NewWithScenario(
 			script,
-			executor.WithStdout(stdout),
-			executor.WithStderr(stderr),
-			executor.WithFS(memfs),
-			executor.WithCommandTypes(commands),
-			executor.WithDefaultEvaluatorFunctions(),
-			executor.WithLogger(logger),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(memfs),
+			godexer.WithCommandTypes(commands),
+			godexer.WithDefaultEvaluatorFunctions(),
+			godexer.WithLogger(logger),
 		)
 		c.Assert(err, qt.IsNil)
 

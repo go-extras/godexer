@@ -8,12 +8,6 @@ import (
 
 type ResponseType = uint8
 
-const (
-	Ok      ResponseType = 0
-	Warning ResponseType = 1
-	Error   ResponseType = 2
-)
-
 // There are tree types of responses that the remote can send back:
 // ok, warning and error
 //
@@ -21,16 +15,23 @@ const (
 // however, a warning can indicate a file transfer failure (such as invalid destination directory)
 // and such be handled as such.
 //
-// All responses except for the `Ok` type always have a message (although these can be empty)
+// All responses except for the `OK` type always have a message (although these can be empty)
 //
 // The remote sends a confirmation after every SCP command, because a failure can occur after every
 // command, the response should be read and checked after sending them.
+const (
+	OK      ResponseType = 0
+	Warning ResponseType = 1
+	Error   ResponseType = 2
+)
+
 type Response struct {
 	Type    ResponseType
 	Message string
 }
 
-// Reads from the given reader (assuming it is the output of the remote) and parses it into a Response structure
+// ParseResponse reads from the given reader (assuming it is the output of the remote)
+// and parses it into a Response structure.
 func ParseResponse(reader io.Reader) (Response, error) {
 	buffer := make([]uint8, 1)
 	_, err := reader.Read(buffer)
@@ -52,24 +53,24 @@ func ParseResponse(reader io.Reader) (Response, error) {
 }
 
 func (r *Response) IsOk() bool {
-	return r.Type == Ok
+	return r.Type == OK
 }
 
 func (r *Response) IsWarning() bool {
 	return r.Type == Warning
 }
 
-// Returns true when the remote responded with an error
+// IsError returns true when the remote responded with an error.
 func (r *Response) IsError() bool {
 	return r.Type == Error
 }
 
-// Returns true when the remote answered with a warning or an error
+// IsFailure returns true when the remote answered with a warning or an error.
 func (r *Response) IsFailure() bool {
 	return r.Type > 0
 }
 
-// Returns the message the remote sent back
+// GetMessage returns the message the remote sent back.
 func (r *Response) GetMessage() string {
 	return r.Message
 }

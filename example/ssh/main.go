@@ -172,14 +172,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	commands := executor.GetRegisteredCommands()
+	commands := godexer.GetRegisteredCommands()
 	commands["scp_writefile"] = sshexec.NewScpWriterFileCommand(conn)
 	commands["ssh_exec"] = sshexec.NewSSHExecCommand(conn, os.Stdout, os.Stderr)
 
-	exc, err := executor.NewWithScenario(
+	exc, err := godexer.NewWithScenario(
 		string(scriptCmds),
-		executor.WithCommandTypes(commands),
-		executor.WithDefaultEvaluatorFunctions(),
+		godexer.WithCommandTypes(commands),
+		godexer.WithDefaultEvaluatorFunctions(),
 	)
 	if err != nil {
 		panic(err)

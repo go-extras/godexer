@@ -1,4 +1,4 @@
-package executor_test
+package godexer_test
 
 import (
 	"strings"

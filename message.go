@@ -1,4 +1,4 @@
-package executor
+package godexer
 
 //nolint:gochecknoinits // init is used for automatic command registration
 func init() {

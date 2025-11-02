@@ -15,11 +15,11 @@ import (
 	"github.com/go-extras/godexer/internal/scp"
 )
 
-func NewScpWriterFileCommand(sshClient *ssh.Client) func(ectx *executor.ExecutorContext) executor.Command {
-	return func(ectx *executor.ExecutorContext) executor.Command {
+func NewScpWriterFileCommand(sshClient *ssh.Client) func(ectx *godexer.ExecutorContext) godexer.Command {
+	return func(ectx *godexer.ExecutorContext) godexer.Command {
 		return &ScpWriteFileCommand{
 			sshClient: sshClient,
-			BaseCommand: executor.BaseCommand{
+			BaseCommand: godexer.BaseCommand{
 				Ectx: ectx,
 			},
 		}
@@ -27,7 +27,7 @@ func NewScpWriterFileCommand(sshClient *ssh.Client) func(ectx *executor.Executor
 }
 
 type ScpWriteFileCommand struct {
-	executor.BaseCommand
+	godexer.BaseCommand
 	sshClient            *ssh.Client
 	File                 string
 	Contents             string
@@ -45,7 +45,7 @@ func (r *ScpWriteFileCommand) Execute(variables map[string]any) error {
 		return errors.Errorf("filemode permissions in %q are empty", r.StepName)
 	}
 
-	remoteFileName, ok := executor.MaybeEvalValue(r.File, variables).(string)
+	remoteFileName, ok := godexer.MaybeEvalValue(r.File, variables).(string)
 	if !ok {
 		return errors.Errorf("filename in %q must be a string", r.StepName)
 	}
@@ -54,7 +54,7 @@ func (r *ScpWriteFileCommand) Execute(variables map[string]any) error {
 
 	switch {
 	case r.ContentsFromVariable != "":
-		variable, ok := executor.MaybeEvalValue(r.ContentsFromVariable, variables).(string)
+		variable, ok := godexer.MaybeEvalValue(r.ContentsFromVariable, variables).(string)
 		if !ok {
 			return errors.Errorf("contents_from_variable in %q must be a string", r.StepName)
 		}
@@ -67,7 +67,7 @@ func (r *ScpWriteFileCommand) Execute(variables map[string]any) error {
 			reader = strings.NewReader(v.String())
 		}
 	case r.ContentsFromFile != "":
-		fileName := executor.MaybeEvalValue(r.ContentsFromFile, variables)
+		fileName := godexer.MaybeEvalValue(r.ContentsFromFile, variables)
 		f, err := os.Open(fileName.(string))
 		if err != nil {
 			return errors.Wrap(err, "can't open local file")
@@ -75,7 +75,7 @@ func (r *ScpWriteFileCommand) Execute(variables map[string]any) error {
 		defer f.Close()
 		reader = f
 	default:
-		contents := executor.MaybeEvalValue(r.Contents, variables)
+		contents := godexer.MaybeEvalValue(r.Contents, variables)
 		reader = strings.NewReader(contents.(string))
 	}
 
