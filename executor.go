@@ -62,6 +62,12 @@ func RegisterValueFunc(name string, fn any) {
 	registeredValueFuncs[name] = fn
 }
 
+// UnregisterValueFunc unregisters template value functions.
+// Not safe for concurrent usage.
+func UnregisterValueFunc(name string) {
+	delete(registeredValueFuncs, name)
+}
+
 func RegisterCommand(name string, cmd func(ectx *ExecutorContext) Command) {
 	registeredCommands[name] = cmd
 }

@@ -95,4 +95,54 @@ func TestVariable(t *testing.T) {
 		err := ex.Execute(m)
 		c.Assert(err, qt.ErrorMatches, "variable: variable name cannot be empty")
 	})
+
+	t.Run("Execute_BoolValueFunc_False", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+
+		// Register a boolean value function that returns false
+		godexer.RegisterValueFunc("some_bool", func(path string) bool {
+			return false
+		})
+		defer godexer.UnregisterValueFunc("some_bool")
+
+		cmd := godexer.NewVariableCommand(&godexer.ExecutorContext{
+			Fs:     fs,
+			Stdout: &bytes.Buffer{},
+			Stderr: &bytes.Buffer{},
+		})
+		ex := cmd.(*godexer.VariableCommand)
+		ex.Variable = "result"
+		ex.Value = `{{ some_bool "test_path" }}`
+
+		m := map[string]any{}
+		err := ex.Execute(m)
+		c.Assert(err, qt.IsNil)
+		c.Assert(m["result"], qt.Equals, "false")
+	})
+
+	t.Run("Execute_BoolValueFunc_True", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+
+		// Register a boolean value function that returns true
+		godexer.RegisterValueFunc("some_bool", func(path string) bool {
+			return true
+		})
+		defer godexer.UnregisterValueFunc("some_bool")
+
+		cmd := godexer.NewVariableCommand(&godexer.ExecutorContext{
+			Fs:     fs,
+			Stdout: &bytes.Buffer{},
+			Stderr: &bytes.Buffer{},
+		})
+		ex := cmd.(*godexer.VariableCommand)
+		ex.Variable = "result"
+		ex.Value = `{{ some_bool "test_path" }}`
+
+		m := map[string]any{}
+		err := ex.Execute(m)
+		c.Assert(err, qt.IsNil)
+		c.Assert(m["result"], qt.Equals, "true")
+	})
 }
