@@ -60,7 +60,7 @@ func TestWriteFile(t *testing.T) {
 		ex.Permissions = "0755"
 		ex.Ectx.Logger = &logger.Logger{}
 
-		m := map[string]any{}
+		m := make(map[string]any)
 		err := ex.Execute(m)
 		c.Assert(err, qt.IsNil)
 
@@ -89,7 +89,7 @@ func TestWriteFile(t *testing.T) {
 		ex.Permissions = "invalid"
 		ex.Ectx.Logger = &logger.Logger{}
 
-		m := map[string]any{}
+		m := make(map[string]any)
 		err := ex.Execute(m)
 		c.Assert(err, qt.IsNil)
 

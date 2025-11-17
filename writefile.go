@@ -39,7 +39,7 @@ func (r *WriteFileCommand) Execute(variables map[string]any) error {
 
 	// convert string permissions to octal mode by parsing from oct string
 	if r.Permissions != "" {
-		v, err := strconv.ParseInt(r.Permissions, 8, 32)
+		v, err := strconv.ParseUint(r.Permissions, 8, 32)
 		if err == nil {
 			mode = os.FileMode(v)
 		}
