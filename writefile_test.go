@@ -99,6 +99,97 @@ func TestWriteFile(t *testing.T) {
 		c.Assert(info.Mode().Perm(), qt.Equals, os.FileMode(0644))
 	})
 
+	t.Run("Execute_EvaluatedFilename", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+
+		cmd := godexer.NewWriterFileCommand(&godexer.ExecutorContext{
+			Fs:     fs,
+			Stdout: &bytes.Buffer{},
+			Stderr: &bytes.Buffer{},
+		})
+		ex := cmd.(*godexer.WriteFileCommand)
+		ex.File = "/tmp/{{ index .  \"filename\" }}.txt"
+		ex.Contents = "test content"
+		ex.Ectx.Logger = &logger.Logger{}
+
+		m := map[string]any{
+			"filename": "myfile",
+		}
+		err := ex.Execute(m)
+		c.Assert(err, qt.IsNil)
+
+		// Verify file was created with evaluated name
+		f, err := fs.Open("/tmp/myfile.txt")
+		c.Assert(err, qt.IsNil)
+		d, _ := io.ReadAll(f)
+		c.Assert(string(d), qt.Equals, "test content")
+	})
+
+	t.Run("Execute_EvaluatedFilenameWithMultipleVars", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+
+		cmd := godexer.NewWriterFileCommand(&godexer.ExecutorContext{
+			Fs:     fs,
+			Stdout: &bytes.Buffer{},
+			Stderr: &bytes.Buffer{},
+		})
+		ex := cmd.(*godexer.WriteFileCommand)
+		ex.File = "{{ index .  \"dir\" }}/{{ index .  \"name\" }}_{{ index .  \"suffix\" }}.log"
+		ex.Contents = "log data"
+		ex.Permissions = "0600"
+		ex.Ectx.Logger = &logger.Logger{}
+
+		m := map[string]any{
+			"dir":    "/var/log",
+			"name":   "app",
+			"suffix": "2025",
+		}
+		err := ex.Execute(m)
+		c.Assert(err, qt.IsNil)
+
+		// Verify file was created with evaluated name
+		f, err := fs.Open("/var/log/app_2025.log")
+		c.Assert(err, qt.IsNil)
+		d, _ := io.ReadAll(f)
+		c.Assert(string(d), qt.Equals, "log data")
+
+		// Verify permissions
+		info, err := fs.Stat("/var/log/app_2025.log")
+		c.Assert(err, qt.IsNil)
+		c.Assert(info.Mode().Perm(), qt.Equals, os.FileMode(0600))
+	})
+
+	t.Run("Execute_EvaluatedFilenameAndContents", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+
+		cmd := godexer.NewWriterFileCommand(&godexer.ExecutorContext{
+			Fs:     fs,
+			Stdout: &bytes.Buffer{},
+			Stderr: &bytes.Buffer{},
+		})
+		ex := cmd.(*godexer.WriteFileCommand)
+		ex.File = "{{ index .  \"path\" }}"
+		ex.Contents = "User: {{ index .  \"user\" }}, ID: {{ index .  \"id\" }}"
+		ex.Ectx.Logger = &logger.Logger{}
+
+		m := map[string]any{
+			"path": "/etc/config.txt",
+			"user": "admin",
+			"id":   "12345",
+		}
+		err := ex.Execute(m)
+		c.Assert(err, qt.IsNil)
+
+		// Verify both filename and contents were evaluated
+		f, err := fs.Open("/etc/config.txt")
+		c.Assert(err, qt.IsNil)
+		d, _ := io.ReadAll(f)
+		c.Assert(string(d), qt.Equals, "User: admin, ID: 12345")
+	})
+
 	t.Run("Execute_MissingFile", func(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
