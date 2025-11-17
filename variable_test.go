@@ -115,7 +115,7 @@ func TestVariable(t *testing.T) {
 		ex.Variable = "result"
 		ex.Value = `{{ some_bool "test_path" }}`
 
-		m := map[string]any{}
+		m := make(map[string]any)
 		err := ex.Execute(m)
 		c.Assert(err, qt.IsNil)
 		c.Assert(m["result"], qt.Equals, "false")
@@ -140,7 +140,7 @@ func TestVariable(t *testing.T) {
 		ex.Variable = "result"
 		ex.Value = `{{ some_bool "test_path" }}`
 
-		m := map[string]any{}
+		m := make(map[string]any)
 		err := ex.Execute(m)
 		c.Assert(err, qt.IsNil)
 		c.Assert(m["result"], qt.Equals, "true")
