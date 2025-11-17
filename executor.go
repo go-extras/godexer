@@ -456,7 +456,7 @@ func (ex *Executor) checkRequires(cmd Command, variables map[string]any) (skip b
 
 	reqres, ok := reqresi.(bool)
 	if !ok {
-		return false, errors.New("Requires return type must be bool")
+		return false, fmt.Errorf("Requires return type must be bool, got %T", reqresi)
 	}
 
 	if !reqres {
