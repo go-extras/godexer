@@ -33,7 +33,14 @@ func (r *WriteFileCommand) Execute(variables map[string]any) error {
 		return errors.Errorf("filename in %q is empty", r.StepName)
 	}
 
-	contents := MaybeEvalValue(r.Contents, variables)
+	contents, ok := MaybeEvalValue(r.Contents, variables).(string)
+	if !ok {
+		contents = r.Contents
+	}
+	fileName, ok := MaybeEvalValue(r.File, variables).(string)
+	if !ok {
+		fileName = r.File
+	}
 
 	var mode os.FileMode = 0644
 
@@ -45,8 +52,8 @@ func (r *WriteFileCommand) Execute(variables map[string]any) error {
 		}
 	}
 
-	r.Ectx.Logger.Debugf("Writing to %s", r.File)
-	err := afero.WriteFile(r.Ectx.Fs, r.File, []byte(contents.(string)), mode)
+	r.Ectx.Logger.Debugf("Writing to %s", fileName)
+	err := afero.WriteFile(r.Ectx.Fs, fileName, []byte(contents), mode)
 	if err != nil {
 		return err
 	}
