@@ -7,7 +7,7 @@ require (
 	github.com/frankban/quicktest v1.14.6
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-extras/errors v0.11.0
-	github.com/hashicorp/go-version v1.7.0
+	github.com/hashicorp/go-version v1.8.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/afero v1.15.0
 	golang.org/x/crypto v0.46.0
