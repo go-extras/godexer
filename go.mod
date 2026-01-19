@@ -8,7 +8,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-extras/errors v0.11.0
 	github.com/hashicorp/go-version v1.8.0
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/afero v1.15.0
 	golang.org/x/crypto v0.47.0
 	gopkg.in/Knetic/govaluate.v2 v2.3.0
