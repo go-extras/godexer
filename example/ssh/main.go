@@ -164,7 +164,6 @@ func main() {
 	config := &ssh.ClientConfig{
 		User: *sshUserPtr,
 		Auth: auth,
-		//nolint:gosec // This is example code; production code should use proper host key verification
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
