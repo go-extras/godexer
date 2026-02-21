@@ -1,0 +1,331 @@
+// Package runcmd implements the `godexer run` command.
+package runcmd
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
+
+	"github.com/go-extras/godexer"
+	"github.com/go-extras/godexer/cmd/godexer/shared"
+	godexerversion "github.com/go-extras/godexer/version"
+)
+
+// Command implements `godexer run`.
+type Command struct {
+	ctx *shared.Context
+	cmd *cobra.Command
+
+	vars            []string
+	varFiles        []string
+	varFromEnv      bool
+	varJSON         string
+	timeout         time.Duration
+	quiet           bool
+	verbose         bool
+	includeBasePath string
+}
+
+// New creates the run command.
+func New(ctx *shared.Context) *Command {
+	c := &Command{ctx: ctx}
+	c.cmd = &cobra.Command{
+		Use:   "run <scenario>",
+		Short: "Execute a godexer scenario",
+		Long: `Execute a godexer scenario from a YAML or JSON file.
+
+Use '-' as the scenario argument to read from stdin.`,
+		Args: cobra.ExactArgs(1),
+		RunE: c.run,
+	}
+
+	f := c.cmd.Flags()
+	f.StringArrayVar(&c.vars, "var", nil, "Set a variable (name=value, repeatable)")
+	f.StringArrayVar(&c.varFiles, "var-file", nil, "Load variables from a YAML/JSON file (repeatable)")
+	f.BoolVar(&c.varFromEnv, "var-from-env", false, "Load variables from environment variables")
+	f.StringVar(&c.varJSON, "var-json", "", "Load variables from a JSON object string")
+	f.DurationVar(&c.timeout, "timeout", 0, "Execution timeout, e.g. 30m (0 = no timeout)")
+	f.BoolVarP(&c.quiet, "quiet", "q", false, "Quiet mode: suppress info output")
+	f.BoolVarP(&c.verbose, "verbose", "v", false, "Verbose mode: show debug/trace output")
+	f.StringVar(&c.includeBasePath, "include-base-path", "",
+		"Base path for include commands (default: directory of the scenario file)")
+
+	return c
+}
+
+// Cmd returns the cobra command.
+func (c *Command) Cmd() *cobra.Command { return c.cmd }
+
+func (c *Command) run(cmd *cobra.Command, args []string) error {
+	scenarioPath := args[0]
+
+	// Read scenario content and determine base directory for includes.
+	content, baseDir, err := readScenario(scenarioPath)
+	if err != nil {
+		return shared.NewExitError(3, fmt.Errorf("failed to read scenario: %w", err))
+	}
+
+	// Override include base path if flag is set.
+	if c.includeBasePath != "" {
+		absPath, absErr := filepath.Abs(c.includeBasePath)
+		if absErr != nil {
+			return shared.NewExitError(3, fmt.Errorf("invalid --include-base-path: %w", absErr))
+		}
+		baseDir = absPath
+	}
+
+	// Load variables in merge order: var-file → env → var-json → --var.
+	variables, err := c.loadVariables()
+	if err != nil {
+		return shared.NewExitError(3, err)
+	}
+
+	// Register all built-in commands plus include (rooted at baseDir).
+	cmds := godexer.GetRegisteredCommands()
+	cmds["include"] = godexer.NewIncludeCommandWithBasePath(newRootFS(), baseDir)
+
+	logger := &cliLogger{quiet: c.quiet, verbose: c.verbose}
+
+	ex, err := godexer.NewWithScenario(
+		string(content),
+		godexer.WithCommandTypes(cmds),
+		godexer.WithDefaultEvaluatorFunctions(),
+		godexerversion.WithVersionFuncs(),
+		godexer.WithLogger(logger),
+	)
+	if err != nil {
+		return shared.NewExitError(2, fmt.Errorf("failed to parse scenario: %w", err))
+	}
+
+	execErr := c.execute(cmd.Context(), ex, variables)
+	if execErr != nil {
+		return shared.NewExitError(1, fmt.Errorf("execution failed: %w", execErr))
+	}
+
+	return nil
+}
+
+// execute runs the executor, optionally under a timeout.
+func (c *Command) execute(ctx context.Context, ex *godexer.Executor, variables map[string]any) error {
+	if c.timeout <= 0 {
+		return ex.Execute(variables)
+	}
+
+	execCtx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() { done <- ex.Execute(variables) }()
+
+	select {
+	case err := <-done:
+		return err
+	case <-execCtx.Done():
+		return fmt.Errorf("timed out after %s", c.timeout)
+	}
+}
+
+// readScenario reads a scenario from a file path or stdin ("-").
+// It returns the file contents and the absolute base directory for includes.
+func readScenario(path string) (content []byte, baseDir string, err error) {
+	if path == "-" {
+		content, err = io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, "", err
+		}
+		baseDir, err = filepath.Abs(".")
+		return content, baseDir, err
+	}
+
+	content, err = os.ReadFile(path)
+	if err != nil {
+		return nil, "", err
+	}
+	baseDir, err = filepath.Abs(filepath.Dir(path))
+	return content, baseDir, err
+}
+
+// loadVariables builds the variable map from all --var* flags in merge order.
+func (c *Command) loadVariables() (map[string]any, error) {
+	variables := make(map[string]any)
+
+	// 1. --var-file files (in order given).
+	for _, f := range c.varFiles {
+		if err := mergeVarFile(f, variables); err != nil {
+			return nil, fmt.Errorf("--var-file %q: %w", f, err)
+		}
+	}
+
+	// 2. --var-from-env.
+	if c.varFromEnv {
+		for _, env := range os.Environ() {
+			key, val, _ := strings.Cut(env, "=")
+			variables[key] = val
+		}
+	}
+
+	// 3. --var-json.
+	if c.varJSON != "" {
+		var jsonVars map[string]any
+		if err := json.Unmarshal([]byte(c.varJSON), &jsonVars); err != nil {
+			return nil, fmt.Errorf("--var-json: %w", err)
+		}
+		for k, v := range jsonVars {
+			variables[k] = v
+		}
+	}
+
+	// 4. --var name=value flags (in order given).
+	for _, v := range c.vars {
+		key, val, ok := strings.Cut(v, "=")
+		if !ok {
+			return nil, fmt.Errorf("--var %q: expected name=value format", v)
+		}
+		variables[key] = val
+	}
+
+	return variables, nil
+}
+
+// mergeVarFile reads a YAML or JSON file and merges its top-level keys into vars.
+func mergeVarFile(path string, vars map[string]any) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	var fileVars map[string]any
+	if err := yaml.Unmarshal(data, &fileVars); err != nil {
+		return err
+	}
+	for k, v := range fileVars {
+		vars[k] = v
+	}
+	return nil
+}
+
+// rootFS is a minimal fs.ReadFileFS rooted at the filesystem root ("/").
+// It is used to satisfy godexer.NewIncludeCommandWithBasePath, which receives
+// absolute paths via the basepath argument.
+type rootFS struct{}
+
+func newRootFS() fs.ReadFileFS { return &rootFS{} }
+
+func (r *rootFS) Open(name string) (fs.File, error) {
+	return os.Open(string(os.PathSeparator) + name)
+}
+
+func (r *rootFS) ReadFile(name string) ([]byte, error) {
+	return os.ReadFile(string(os.PathSeparator) + name)
+}
+
+// ---------------------------------------------------------------------------
+// cliLogger implements godexer.Logger for the CLI.
+// ---------------------------------------------------------------------------
+
+type cliLogger struct {
+	quiet   bool
+	verbose bool
+}
+
+func (l *cliLogger) Debugf(format string, args ...any) {
+	if l.verbose {
+		fmt.Fprintf(os.Stderr, format+"\n", args...)
+	}
+}
+
+func (l *cliLogger) Infof(format string, args ...any) {
+	if !l.quiet {
+		fmt.Fprintf(os.Stderr, format+"\n", args...)
+	}
+}
+
+func (l *cliLogger) Printf(format string, args ...any) {
+	if !l.quiet {
+		fmt.Fprintf(os.Stderr, format+"\n", args...)
+	}
+}
+
+func (l *cliLogger) Warnf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", args...)
+}
+
+func (l *cliLogger) Warningf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", args...)
+}
+
+func (l *cliLogger) Errorf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
+}
+
+func (l *cliLogger) Fatalf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "Fatal: "+format+"\n", args...)
+	os.Exit(1)
+}
+
+func (l *cliLogger) Panicf(format string, args ...any) {
+	panic(fmt.Sprintf(format, args...))
+}
+
+func (l *cliLogger) Tracef(format string, args ...any) {
+	if l.verbose {
+		fmt.Fprintf(os.Stderr, format+"\n", args...)
+	}
+}
+
+func (l *cliLogger) Debug(args ...any) {
+	if l.verbose {
+		fmt.Fprintln(os.Stderr, args...)
+	}
+}
+
+func (l *cliLogger) Info(args ...any) {
+	if !l.quiet {
+		fmt.Fprintln(os.Stderr, args...)
+	}
+}
+
+func (l *cliLogger) Print(args ...any) {
+	if !l.quiet {
+		fmt.Fprintln(os.Stderr, args...)
+	}
+}
+
+func (l *cliLogger) Warn(args ...any) {
+	fmt.Fprint(os.Stderr, "Warning: ")
+	fmt.Fprintln(os.Stderr, args...)
+}
+
+func (l *cliLogger) Warning(args ...any) {
+	fmt.Fprint(os.Stderr, "Warning: ")
+	fmt.Fprintln(os.Stderr, args...)
+}
+
+func (l *cliLogger) Error(args ...any) {
+	fmt.Fprint(os.Stderr, "Error: ")
+	fmt.Fprintln(os.Stderr, args...)
+}
+
+func (l *cliLogger) Fatal(args ...any) {
+	fmt.Fprint(os.Stderr, "Fatal: ")
+	fmt.Fprintln(os.Stderr, args...)
+	os.Exit(1)
+}
+
+func (l *cliLogger) Panic(args ...any) {
+	panic(fmt.Sprint(args...))
+}
+
+func (l *cliLogger) Trace(args ...any) {
+	if l.verbose {
+		fmt.Fprintln(os.Stderr, args...)
+	}
+}

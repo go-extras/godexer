@@ -27,7 +27,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: ${{ steps.vars.outputs.go_version }}
+          go-version: 1.26.0
           cache: true
           cache-dependency-path: go.sum
 
@@ -37,6 +37,36 @@ jobs:
       - name: Build library
         run: go build -v ./...
 
+      - name: Build standalone binary
+        run: go build -v -o bin/godexer ./cmd/godexer
+
+      - name: CLI smoke tests
+        run: |
+          echo "==> version"
+          ./bin/godexer version
+
+          echo "==> validate: valid scenario"
+          printf 'commands:\n  - type: message\n    description: hello\n' | ./bin/godexer validate -
+
+          echo "==> validate: invalid scenario (expect exit code 2)"
+          set +e
+          printf 'commands:\n  - type: unknown_type\n' | ./bin/godexer validate - 2>/dev/null
+          RC=$?
+          set -e
+          if [ "$RC" -ne 2 ]; then
+            echo "ERROR: expected exit code 2, got $RC"
+            exit 1
+          fi
+          echo "  got expected exit code 2"
+
+          echo "==> run: simple exec"
+          printf 'commands:\n  - type: exec\n    cmd: ["echo", "smoke-ok"]\n' | ./bin/godexer run - --quiet
+
+          echo "==> run: with --var flag"
+          printf '%s\n' 'commands:' '  - type: exec' '    cmd: ["echo", "run-ok"]' | ./bin/godexer run - --var name=world --quiet
+
+          echo "All smoke tests passed"
+
   # Unit Tests
   unit-tests:
     name: Unit Tests
@@ -44,9 +74,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
-      - id: vars
-        uses: ./.github/actions/vars
 
       - uses: actions/setup-go@v6
         with:
