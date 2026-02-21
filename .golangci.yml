@@ -252,6 +252,29 @@ linters:
       - text: 'var-naming: avoid meaningless package names'
         linters:
           - revive
+      # var-naming: version package intentionally shares name with a stdlib-adjacent package
+      - text: 'var-naming: avoid package names that conflict with Go standard library'
+        linters:
+          - revive
+      # G101: hardcoded test RSA keys are not real credentials
+      - path: '_test\.go$'
+        text: 'G101'
+        linters:
+          - gosec
+      # G705: taint analysis false positive in test helpers using os.Args
+      - path: '_test\.go$'
+        text: 'G705'
+        linters:
+          - gosec
+      # G117: test utility structs use field names that match secret patterns
+      - path: 'internal/testutils/'
+        text: 'G117'
+        linters:
+          - gosec
+      # gosec: example programs are not production code
+      - path: '^example/'
+        linters:
+          - gosec
     paths:
       - 'third_party$'
       - 'builtin$'
@@ -277,3 +300,4 @@ formatters:
       - 'third_party$'
       - 'builtin$'
       - 'examples$'
+      - '^example/'

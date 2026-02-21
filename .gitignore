@@ -4,3 +4,7 @@ example/ssh/ssh
 example/ssh/privatersa.key
 *.bat
 example/ssh/vars_*.yaml
+
+# Build artifacts
+bin/
+dist/
