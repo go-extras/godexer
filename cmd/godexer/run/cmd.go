@@ -219,11 +219,11 @@ type rootFS struct{}
 
 func newRootFS() fs.ReadFileFS { return &rootFS{} }
 
-func (r *rootFS) Open(name string) (fs.File, error) {
+func (*rootFS) Open(name string) (fs.File, error) {
 	return os.Open(string(os.PathSeparator) + name)
 }
 
-func (r *rootFS) ReadFile(name string) ([]byte, error) {
+func (*rootFS) ReadFile(name string) ([]byte, error) {
 	return os.ReadFile(string(os.PathSeparator) + name)
 }
 
@@ -254,24 +254,24 @@ func (l *cliLogger) Printf(format string, args ...any) {
 	}
 }
 
-func (l *cliLogger) Warnf(format string, args ...any) {
+func (*cliLogger) Warnf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", args...)
 }
 
-func (l *cliLogger) Warningf(format string, args ...any) {
+func (*cliLogger) Warningf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", args...)
 }
 
-func (l *cliLogger) Errorf(format string, args ...any) {
+func (*cliLogger) Errorf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
 }
 
-func (l *cliLogger) Fatalf(format string, args ...any) {
+func (*cliLogger) Fatalf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "Fatal: "+format+"\n", args...)
-	os.Exit(1)
+	os.Exit(1) //nolint:revive // Fatal is expected to exit
 }
 
-func (l *cliLogger) Panicf(format string, args ...any) {
+func (*cliLogger) Panicf(format string, args ...any) {
 	panic(fmt.Sprintf(format, args...))
 }
 
@@ -299,28 +299,28 @@ func (l *cliLogger) Print(args ...any) {
 	}
 }
 
-func (l *cliLogger) Warn(args ...any) {
+func (*cliLogger) Warn(args ...any) {
 	fmt.Fprint(os.Stderr, "Warning: ")
 	fmt.Fprintln(os.Stderr, args...)
 }
 
-func (l *cliLogger) Warning(args ...any) {
+func (*cliLogger) Warning(args ...any) {
 	fmt.Fprint(os.Stderr, "Warning: ")
 	fmt.Fprintln(os.Stderr, args...)
 }
 
-func (l *cliLogger) Error(args ...any) {
+func (*cliLogger) Error(args ...any) {
 	fmt.Fprint(os.Stderr, "Error: ")
 	fmt.Fprintln(os.Stderr, args...)
 }
 
-func (l *cliLogger) Fatal(args ...any) {
+func (*cliLogger) Fatal(args ...any) {
 	fmt.Fprint(os.Stderr, "Fatal: ")
 	fmt.Fprintln(os.Stderr, args...)
-	os.Exit(1)
+	os.Exit(1) //nolint:revive // Fatal is expected to exit
 }
 
-func (l *cliLogger) Panic(args ...any) {
+func (*cliLogger) Panic(args ...any) {
 	panic(fmt.Sprint(args...))
 }
 

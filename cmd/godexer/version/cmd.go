@@ -34,7 +34,7 @@ func New(ctx *shared.Context) *Command {
 // Cmd returns the cobra command.
 func (c *Command) Cmd() *cobra.Command { return c.cmd }
 
-func (c *Command) run(cmd *cobra.Command, _ []string) error {
+func (*Command) run(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintf(cmd.OutOrStdout(), "godexer version %s\n", AppVersion)
 	return nil
 }

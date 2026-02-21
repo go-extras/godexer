@@ -42,7 +42,7 @@ unknown command types. Use '-' as the scenario argument to read from stdin.`,
 // Cmd returns the cobra command.
 func (c *Command) Cmd() *cobra.Command { return c.cmd }
 
-func (c *Command) run(cmd *cobra.Command, args []string) error {
+func (*Command) run(cmd *cobra.Command, args []string) error {
 	scenarioPath := args[0]
 
 	var (
