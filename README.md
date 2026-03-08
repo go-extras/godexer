@@ -87,6 +87,11 @@ go run ./example/local
 
 See also the SSH example at `example/ssh` (requires an SSH server and key; see the file header for flags).
 
+## CLI logging
+- `godexer run --log-level <trace|debug|info|warn|warning|error> scenario.yaml` selects the runtime log threshold.
+- If `--log-level` is set, it overrides the legacy `-q` / `--quiet` and `-v` / `--verbose` flags.
+- `warning` is accepted as an alias for `warn`.
+
 ## API documentation
 - Package reference: https://pkg.go.dev/github.com/go-extras/godexer
 - Subpackages:
