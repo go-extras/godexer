@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-extras/godexer"
 	"github.com/go-extras/godexer/cmd/godexer/shared"
+	internallogger "github.com/go-extras/godexer/internal/logger"
 	godexerversion "github.com/go-extras/godexer/version"
 )
 
@@ -29,6 +30,7 @@ type Command struct {
 	varFiles        []string
 	varFromEnv      bool
 	varJSON         string
+	logLevel        string
 	timeout         time.Duration
 	quiet           bool
 	verbose         bool
@@ -43,7 +45,10 @@ func New(ctx *shared.Context) *Command {
 		Short: "Execute a godexer scenario",
 		Long: `Execute a godexer scenario from a YAML or JSON file.
 
-Use '-' as the scenario argument to read from stdin.`,
+	Use '-' as the scenario argument to read from stdin.
+
+	Use --log-level to choose trace, debug, info, warn (or warning), or error. When set,
+	--log-level overrides the legacy -q/--quiet and -v/--verbose flags.`,
 		Args: cobra.ExactArgs(1),
 		RunE: c.run,
 	}
@@ -53,6 +58,7 @@ Use '-' as the scenario argument to read from stdin.`,
 	f.StringArrayVar(&c.varFiles, "var-file", nil, "Load variables from a YAML/JSON file (repeatable)")
 	f.BoolVar(&c.varFromEnv, "var-from-env", false, "Load variables from environment variables")
 	f.StringVar(&c.varJSON, "var-json", "", "Load variables from a JSON object string")
+	f.StringVar(&c.logLevel, "log-level", "", "Set log level (trace, debug, info, warn/warning, error). Overrides legacy -q/--quiet and -v/--verbose")
 	f.DurationVar(&c.timeout, "timeout", 0, "Execution timeout, e.g. 30m (0 = no timeout)")
 	f.BoolVarP(&c.quiet, "quiet", "q", false, "Quiet mode: suppress info output")
 	f.BoolVarP(&c.verbose, "verbose", "v", false, "Verbose mode: show debug/trace output")
@@ -66,6 +72,11 @@ Use '-' as the scenario argument to read from stdin.`,
 func (c *Command) Cmd() *cobra.Command { return c.cmd }
 
 func (c *Command) run(cmd *cobra.Command, args []string) error {
+	level, err := resolveLogLevel(c.logLevel, cmd.Flags().Changed("log-level"), c.quiet, c.verbose)
+	if err != nil {
+		return shared.NewExitError(3, err)
+	}
+
 	scenarioPath := args[0]
 
 	// Read scenario content and determine base directory for includes.
@@ -93,7 +104,7 @@ func (c *Command) run(cmd *cobra.Command, args []string) error {
 	cmds := godexer.GetRegisteredCommands()
 	cmds["include"] = godexer.NewIncludeCommandWithBasePath(newRootFS(), baseDir)
 
-	logger := &cliLogger{quiet: c.quiet, verbose: c.verbose}
+	logger := newCLILogger(level, cmd.ErrOrStderr())
 
 	ex, err := godexer.NewWithScenario(
 		string(content),
@@ -232,38 +243,83 @@ func (*rootFS) ReadFile(name string) ([]byte, error) {
 // ---------------------------------------------------------------------------
 
 type cliLogger struct {
-	quiet   bool
-	verbose bool
+	level  internallogger.Level
+	stderr io.Writer
+}
+
+func legacyLogLevel(quiet, verbose bool) internallogger.Level {
+	if verbose {
+		return internallogger.TraceLevel
+	}
+	if quiet {
+		return internallogger.WarnLevel
+	}
+	return internallogger.InfoLevel
+}
+
+func resolveLogLevel(explicit string, explicitSet, quiet, verbose bool) (internallogger.Level, error) {
+	if explicitSet {
+		level, err := internallogger.ParseLevel(explicit)
+		if err != nil {
+			return "", fmt.Errorf("--log-level: %w", err)
+		}
+		return level, nil
+	}
+
+	return legacyLogLevel(quiet, verbose), nil
+}
+
+func newCLILogger(level internallogger.Level, stderr io.Writer) *cliLogger {
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+	return &cliLogger{level: level, stderr: stderr}
+}
+
+func (l *cliLogger) enabled(level internallogger.Level) bool {
+	if l == nil {
+		return internallogger.InfoLevel.Allows(level)
+	}
+	return l.level.Allows(level)
+}
+
+func (l *cliLogger) writef(level internallogger.Level, prefix, format string, args ...any) {
+	if !l.enabled(level) {
+		return
+	}
+	fmt.Fprintf(l.stderr, prefix+format+"\n", args...)
+}
+
+func (l *cliLogger) write(level internallogger.Level, prefix string, args ...any) {
+	if !l.enabled(level) {
+		return
+	}
+	fmt.Fprint(l.stderr, prefix)
+	fmt.Fprintln(l.stderr, args...)
 }
 
 func (l *cliLogger) Debugf(format string, args ...any) {
-	if l.verbose {
-		fmt.Fprintf(os.Stderr, format+"\n", args...)
-	}
+	l.writef(internallogger.DebugLevel, "", format, args...)
 }
 
 func (l *cliLogger) Infof(format string, args ...any) {
-	if !l.quiet {
-		fmt.Fprintf(os.Stderr, format+"\n", args...)
-	}
+	l.writef(internallogger.InfoLevel, "", format, args...)
 }
 
 func (l *cliLogger) Printf(format string, args ...any) {
-	if !l.quiet {
-		fmt.Fprintf(os.Stderr, format+"\n", args...)
-	}
+	l.writef(internallogger.InfoLevel, "", format, args...)
 }
 
-func (*cliLogger) Warnf(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", args...)
+func (l *cliLogger) Warnf(format string, args ...any) {
+	l.writef(internallogger.WarnLevel, "Warning: ", format, args...)
 }
 
-func (*cliLogger) Warningf(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "Warning: "+format+"\n", args...)
+func (l *cliLogger) Warningf(format string, args ...any) {
+	l.writef(internallogger.WarnLevel, "Warning: ", format, args...)
 }
 
-func (*cliLogger) Errorf(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
+func (l *cliLogger) Errorf(format string, args ...any) {
+	l.writef(internallogger.ErrorLevel, "Error: ", format, args...)
 }
 
 func (*cliLogger) Fatalf(format string, args ...any) {
@@ -276,42 +332,31 @@ func (*cliLogger) Panicf(format string, args ...any) {
 }
 
 func (l *cliLogger) Tracef(format string, args ...any) {
-	if l.verbose {
-		fmt.Fprintf(os.Stderr, format+"\n", args...)
-	}
+	l.writef(internallogger.TraceLevel, "", format, args...)
 }
 
 func (l *cliLogger) Debug(args ...any) {
-	if l.verbose {
-		fmt.Fprintln(os.Stderr, args...)
-	}
+	l.write(internallogger.DebugLevel, "", args...)
 }
 
 func (l *cliLogger) Info(args ...any) {
-	if !l.quiet {
-		fmt.Fprintln(os.Stderr, args...)
-	}
+	l.write(internallogger.InfoLevel, "", args...)
 }
 
 func (l *cliLogger) Print(args ...any) {
-	if !l.quiet {
-		fmt.Fprintln(os.Stderr, args...)
-	}
+	l.write(internallogger.InfoLevel, "", args...)
 }
 
-func (*cliLogger) Warn(args ...any) {
-	fmt.Fprint(os.Stderr, "Warning: ")
-	fmt.Fprintln(os.Stderr, args...)
+func (l *cliLogger) Warn(args ...any) {
+	l.write(internallogger.WarnLevel, "Warning: ", args...)
 }
 
-func (*cliLogger) Warning(args ...any) {
-	fmt.Fprint(os.Stderr, "Warning: ")
-	fmt.Fprintln(os.Stderr, args...)
+func (l *cliLogger) Warning(args ...any) {
+	l.write(internallogger.WarnLevel, "Warning: ", args...)
 }
 
-func (*cliLogger) Error(args ...any) {
-	fmt.Fprint(os.Stderr, "Error: ")
-	fmt.Fprintln(os.Stderr, args...)
+func (l *cliLogger) Error(args ...any) {
+	l.write(internallogger.ErrorLevel, "Error: ", args...)
 }
 
 func (*cliLogger) Fatal(args ...any) {
@@ -325,7 +370,5 @@ func (*cliLogger) Panic(args ...any) {
 }
 
 func (l *cliLogger) Trace(args ...any) {
-	if l.verbose {
-		fmt.Fprintln(os.Stderr, args...)
-	}
+	l.write(internallogger.TraceLevel, "", args...)
 }

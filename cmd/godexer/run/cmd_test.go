@@ -1,8 +1,10 @@
 package runcmd_test
 
 import (
+	"bytes"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
@@ -84,6 +86,75 @@ func TestRunCmd_VerboseFlag(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 }
 
+func TestRunCmd_HelpIncludesLogLevelFlag(t *testing.T) {
+	c := qt.New(t)
+	cmd := newRunCmd()
+	var out bytes.Buffer
+	cmd.Cmd().SetOut(&out)
+	cmd.Cmd().SetErr(&out)
+	cmd.Cmd().SetArgs([]string{"--help"})
+
+	err := cmd.Cmd().Execute()
+
+	c.Assert(err, qt.IsNil)
+	help := out.String()
+	c.Assert(strings.Contains(help, "--log-level string"), qt.IsTrue)
+	c.Assert(strings.Contains(help, "warn/warning"), qt.IsTrue)
+	c.Assert(strings.Contains(help, "Overrides legacy -q/--quiet and -v/--verbose"), qt.IsTrue)
+}
+
+func TestRunCmd_LogLevelControlsRuntimeLogger(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		contains []string
+		omits    []string
+	}{
+		{
+			name:     "explicit info logs scenario descriptions",
+			args:     []string{"--log-level", "info"},
+			contains: []string{"hello"},
+		},
+		{
+			name:  "explicit error suppresses info logs",
+			args:  []string{"--log-level", "error"},
+			omits: []string{"hello"},
+		},
+		{
+			name:  "warning alias suppresses info logs",
+			args:  []string{"--log-level", "warning"},
+			omits: []string{"hello"},
+		},
+		{
+			name:  "explicit log level overrides verbose compatibility flag",
+			args:  []string{"--log-level", "warn", "--verbose"},
+			omits: []string{"hello"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := qt.New(t)
+			f := writeTempFile(t, msgScenario)
+			cmd := newRunCmd()
+			var stderr bytes.Buffer
+			cmd.Cmd().SetErr(&stderr)
+			cmd.Cmd().SetArgs(append(tt.args, f))
+
+			err := cmd.Cmd().Execute()
+
+			c.Assert(err, qt.IsNil)
+			output := stderr.String()
+			for _, expected := range tt.contains {
+				c.Assert(strings.Contains(output, expected), qt.IsTrue)
+			}
+			for _, omitted := range tt.omits {
+				c.Assert(strings.Contains(output, omitted), qt.IsFalse)
+			}
+		})
+	}
+}
+
 func TestRunCmd_VarFlag(t *testing.T) {
 	c := qt.New(t)
 
@@ -93,6 +164,22 @@ func TestRunCmd_VarFlag(t *testing.T) {
 
 	err := cmd.Cmd().Execute()
 	c.Assert(err, qt.IsNil)
+}
+
+func TestRunCmd_InvalidLogLevel(t *testing.T) {
+	c := qt.New(t)
+
+	f := writeTempFile(t, msgScenario)
+	cmd := newRunCmd()
+	cmd.Cmd().SetArgs([]string{"--log-level", "loud", f})
+
+	err := cmd.Cmd().Execute()
+
+	c.Assert(err, qt.IsNotNil)
+	var exitErr *shared.ExitError
+	c.Assert(errors.As(err, &exitErr), qt.IsTrue)
+	c.Assert(exitErr.Code, qt.Equals, 3)
+	c.Assert(exitErr.Error(), qt.Matches, `--log-level: invalid log level "loud" \(expected one of: trace, debug, info, warn, error\)`)
 }
 
 func TestRunCmd_VarFlagInvalidFormat(t *testing.T) {
