@@ -29,7 +29,7 @@ func ParseLevel(value string) (Level, error) {
 	case string(ErrorLevel):
 		return ErrorLevel, nil
 	default:
-		return "", fmt.Errorf("invalid log level %q (expected one of: trace, debug, info, warn, error)", value)
+		return "", fmt.Errorf("invalid log level %q (expected one of: trace, debug, info, warn (warning), error)", value)
 	}
 }
 
