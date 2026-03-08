@@ -27,7 +27,7 @@ func TestLegacyLogLevel(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := qt.New(t)
 
-			got := legacyLogLevel(tt.quiet, tt.verbose)
+			got := legacyLogLevel(legacyLogFlags{quiet: tt.quiet, verbose: tt.verbose})
 
 			c.Assert(got, qt.Equals, tt.want)
 		})
@@ -57,7 +57,10 @@ func TestResolveLogLevel(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := qt.New(t)
 
-			got, err := resolveLogLevel(tt.explicit, tt.explicitSet, tt.quiet, tt.verbose)
+			got, err := resolveLogLevel(
+				logLevelInput{value: tt.explicit, set: tt.explicitSet},
+				legacyLogFlags{quiet: tt.quiet, verbose: tt.verbose},
+			)
 
 			if tt.wantErr != "" {
 				c.Assert(err, qt.ErrorMatches, tt.wantErr)

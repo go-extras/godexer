@@ -72,7 +72,10 @@ func New(ctx *shared.Context) *Command {
 func (c *Command) Cmd() *cobra.Command { return c.cmd }
 
 func (c *Command) run(cmd *cobra.Command, args []string) error {
-	level, err := resolveLogLevel(c.logLevel, cmd.Flags().Changed("log-level"), c.quiet, c.verbose)
+	level, err := resolveLogLevel(
+		logLevelInput{value: c.logLevel, set: cmd.Flags().Changed("log-level")},
+		legacyLogFlags{quiet: c.quiet, verbose: c.verbose},
+	)
 	if err != nil {
 		return shared.NewExitError(3, err)
 	}
@@ -247,26 +250,36 @@ type cliLogger struct {
 	stderr io.Writer
 }
 
-func legacyLogLevel(quiet, verbose bool) internallogger.Level {
-	if verbose {
+type legacyLogFlags struct {
+	quiet   bool
+	verbose bool
+}
+
+type logLevelInput struct {
+	value string
+	set   bool
+}
+
+func legacyLogLevel(flags legacyLogFlags) internallogger.Level {
+	if flags.verbose {
 		return internallogger.TraceLevel
 	}
-	if quiet {
+	if flags.quiet {
 		return internallogger.WarnLevel
 	}
 	return internallogger.InfoLevel
 }
 
-func resolveLogLevel(explicit string, explicitSet, quiet, verbose bool) (internallogger.Level, error) {
-	if explicitSet {
-		level, err := internallogger.ParseLevel(explicit)
+func resolveLogLevel(explicit logLevelInput, legacy legacyLogFlags) (internallogger.Level, error) {
+	if explicit.set {
+		level, err := internallogger.ParseLevel(explicit.value)
 		if err != nil {
 			return "", fmt.Errorf("--log-level: %w", err)
 		}
 		return level, nil
 	}
 
-	return legacyLogLevel(quiet, verbose), nil
+	return legacyLogLevel(legacy), nil
 }
 
 func newCLILogger(level internallogger.Level, stderr io.Writer) *cliLogger {

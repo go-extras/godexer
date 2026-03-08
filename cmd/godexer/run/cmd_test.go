@@ -40,7 +40,7 @@ func writeTempFile(t *testing.T, content string) string {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	t.Cleanup(func() { _ = os.Remove(f.Name()) }) //nolint:gosec // test-controlled path
+	t.Cleanup(func() { _ = os.Remove(f.Name()) })
 	if _, err = f.WriteString(content); err != nil {
 		t.Fatalf("failed to write temp file: %v", err)
 	}
