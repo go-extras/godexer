@@ -38,12 +38,11 @@ func (l Level) Allows(message Level) bool {
 }
 
 func (l Level) normalized() Level {
-	switch l {
-	case TraceLevel, DebugLevel, InfoLevel, WarnLevel, ErrorLevel:
-		return l
-	default:
-		return InfoLevel
+	normalized, err := ParseLevel(string(l))
+	if err == nil {
+		return normalized
 	}
+	return InfoLevel
 }
 
 func levelOrder(level Level) int {

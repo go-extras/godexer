@@ -61,6 +61,18 @@ func TestLoggerFiltersByLevel(t *testing.T) {
 			omits:    []string{"INFO: info", "DEBUG: debug", "TRACE: trace"},
 		},
 		{
+			name:     "warning alias suppresses info",
+			level:    Level("warning"),
+			contains: []string{"WARN: warn", "ERR: err"},
+			omits:    []string{"INFO: info", "DEBUG: debug", "TRACE: trace"},
+		},
+		{
+			name:     "trimmed uppercase warning alias suppresses info",
+			level:    Level(" WARNING "),
+			contains: []string{"WARN: warn", "ERR: err"},
+			omits:    []string{"INFO: info", "DEBUG: debug", "TRACE: trace"},
+		},
+		{
 			name:     "trace includes everything",
 			level:    TraceLevel,
 			contains: []string{"TRACE: trace", "DEBUG: debug", "INFO: info", "WARN: warn", "ERR: err"},
