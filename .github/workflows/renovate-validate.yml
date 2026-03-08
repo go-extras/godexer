@@ -1,0 +1,24 @@
+name: Validate Renovate Config
+
+on:
+  pull_request:
+    paths:
+      - renovate.json
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate renovate.json
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.x'
+      - name: Validate Renovate config
+        run: npx --yes --package renovate renovate-config-validator renovate.json
