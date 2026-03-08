@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -36,16 +37,11 @@ const varScenario = `commands:
 // writeTempFile creates a temp file with the given content, cleaned up after the test.
 func writeTempFile(t *testing.T, content string) string {
 	t.Helper()
-	f, err := os.CreateTemp("", "scenario*.yaml")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	t.Cleanup(func() { _ = os.Remove(f.Name()) })
-	if _, err = f.WriteString(content); err != nil {
+	path := filepath.Join(t.TempDir(), "scenario.yaml")
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("failed to write temp file: %v", err)
 	}
-	_ = f.Close()
-	return f.Name()
+	return path
 }
 
 // newRunCmd creates a fresh run command for each test.
