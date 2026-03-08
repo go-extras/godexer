@@ -2,6 +2,10 @@ package runcmd
 
 import (
 	"bytes"
+	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -50,7 +54,7 @@ func TestResolveLogLevel(t *testing.T) {
 		{name: "verbose wins when both legacy flags are set", quiet: true, verbose: true, want: internallogger.TraceLevel},
 		{name: "warning alias", explicit: "warning", explicitSet: true, want: internallogger.WarnLevel},
 		{name: "explicit log level overrides legacy flags", explicit: "error", explicitSet: true, quiet: true, verbose: true, want: internallogger.ErrorLevel},
-		{name: "invalid explicit log level", explicit: "loud", explicitSet: true, wantErr: `--log-level: invalid log level "loud" \(expected one of: trace, debug, info, warn, error\)`},
+		{name: "invalid explicit log level", explicit: "loud", explicitSet: true, wantErr: `--log-level: invalid log level "loud" \(expected one of: trace, debug, info, warn \(warning\), error\)`},
 	}
 
 	for _, tt := range tests {
@@ -113,5 +117,68 @@ func TestCLILoggerFiltersByLevel(t *testing.T) {
 				c.Assert(strings.Contains(output, omitted), qt.IsFalse)
 			}
 		})
+	}
+}
+
+func TestCLILoggerFatalUsesConfiguredStderr(t *testing.T) {
+	tests := []struct {
+		name   string
+		method string
+		want   string
+	}{
+		{name: "Fatal", method: "Fatal", want: "Fatal: boom\n"},
+		{name: "Fatalf", method: "Fatalf", want: "Fatal: boom 7\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := qt.New(t)
+			stderrPath := filepath.Join(t.TempDir(), "stderr.txt")
+
+			//nolint:gosec // Test helper intentionally re-executes the current test binary.
+			cmd := exec.Command(os.Args[0], "-test.run=TestCLILoggerFatalHelper")
+			cmd.Env = append(os.Environ(),
+				"GO_WANT_CLI_LOGGER_FATAL_HELPER=1",
+				"CLI_LOGGER_FATAL_FILE="+stderrPath,
+				"CLI_LOGGER_FATAL_METHOD="+tt.method,
+				"GOCOVERDIR="+t.TempDir(),
+			)
+
+			var stderr bytes.Buffer
+			cmd.Stderr = &stderr
+
+			err := cmd.Run()
+
+			var exitErr *exec.ExitError
+			c.Assert(errors.As(err, &exitErr), qt.IsTrue)
+			c.Assert(exitErr.ExitCode(), qt.Equals, 1)
+
+			data, readErr := os.ReadFile(stderrPath)
+			c.Assert(readErr, qt.IsNil)
+			c.Assert(string(data), qt.Equals, tt.want)
+			c.Assert(stderr.String(), qt.Equals, "")
+		})
+	}
+}
+
+func TestCLILoggerFatalHelper(t *testing.T) {
+	if os.Getenv("GO_WANT_CLI_LOGGER_FATAL_HELPER") != "1" {
+		return
+	}
+
+	//nolint:gosec // Test controls this temp file path when launching the helper subprocess.
+	stderrFile, err := os.Create(os.Getenv("CLI_LOGGER_FATAL_FILE"))
+	if err != nil {
+		t.Fatalf("failed to create stderr file: %v", err)
+	}
+
+	logger := newCLILogger(internallogger.InfoLevel, stderrFile)
+	switch os.Getenv("CLI_LOGGER_FATAL_METHOD") {
+	case "Fatal":
+		logger.Fatal("boom")
+	case "Fatalf":
+		logger.Fatalf("boom %d", 7)
+	default:
+		t.Fatalf("unknown fatal method %q", os.Getenv("CLI_LOGGER_FATAL_METHOD"))
 	}
 }

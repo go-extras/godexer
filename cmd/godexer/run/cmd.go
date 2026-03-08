@@ -61,7 +61,7 @@ func New(ctx *shared.Context) *Command {
 	f.StringVar(&c.logLevel, "log-level", "", "Set log level (trace, debug, info, warn/warning, error). Overrides legacy -q/--quiet and -v/--verbose")
 	f.DurationVar(&c.timeout, "timeout", 0, "Execution timeout, e.g. 30m (0 = no timeout)")
 	f.BoolVarP(&c.quiet, "quiet", "q", false, "Quiet mode: suppress info output")
-	f.BoolVarP(&c.verbose, "verbose", "v", false, "Verbose mode: show debug/trace output")
+	f.BoolVarP(&c.verbose, "verbose", "v", false, "Verbose mode: show debug/trace output (wins over --quiet when both are set)")
 	f.StringVar(&c.includeBasePath, "include-base-path", "",
 		"Base path for include commands (default: directory of the scenario file)")
 
@@ -289,6 +289,13 @@ func newCLILogger(level internallogger.Level, stderr io.Writer) *cliLogger {
 	return &cliLogger{level: level, stderr: stderr}
 }
 
+func (l *cliLogger) stderrWriter() io.Writer {
+	if l == nil || l.stderr == nil {
+		return os.Stderr
+	}
+	return l.stderr
+}
+
 func (l *cliLogger) enabled(level internallogger.Level) bool {
 	if l == nil {
 		return internallogger.InfoLevel.Allows(level)
@@ -300,15 +307,16 @@ func (l *cliLogger) writef(level internallogger.Level, prefix, format string, ar
 	if !l.enabled(level) {
 		return
 	}
-	fmt.Fprintf(l.stderr, prefix+format+"\n", args...)
+	fmt.Fprintf(l.stderrWriter(), prefix+format+"\n", args...)
 }
 
 func (l *cliLogger) write(level internallogger.Level, prefix string, args ...any) {
 	if !l.enabled(level) {
 		return
 	}
-	fmt.Fprint(l.stderr, prefix)
-	fmt.Fprintln(l.stderr, args...)
+	writer := l.stderrWriter()
+	fmt.Fprint(writer, prefix)
+	fmt.Fprintln(writer, args...)
 }
 
 func (l *cliLogger) Debugf(format string, args ...any) {
@@ -335,8 +343,8 @@ func (l *cliLogger) Errorf(format string, args ...any) {
 	l.writef(internallogger.ErrorLevel, "Error: ", format, args...)
 }
 
-func (*cliLogger) Fatalf(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "Fatal: "+format+"\n", args...)
+func (l *cliLogger) Fatalf(format string, args ...any) {
+	fmt.Fprintf(l.stderrWriter(), "Fatal: "+format+"\n", args...)
 	os.Exit(1) //nolint:revive // Fatal is expected to exit
 }
 
@@ -372,9 +380,10 @@ func (l *cliLogger) Error(args ...any) {
 	l.write(internallogger.ErrorLevel, "Error: ", args...)
 }
 
-func (*cliLogger) Fatal(args ...any) {
-	fmt.Fprint(os.Stderr, "Fatal: ")
-	fmt.Fprintln(os.Stderr, args...)
+func (l *cliLogger) Fatal(args ...any) {
+	writer := l.stderrWriter()
+	fmt.Fprint(writer, "Fatal: ")
+	fmt.Fprintln(writer, args...)
 	os.Exit(1) //nolint:revive // Fatal is expected to exit
 }
 

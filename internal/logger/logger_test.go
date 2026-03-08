@@ -38,7 +38,7 @@ func TestParseLevelInvalid(t *testing.T) {
 
 	_, err := ParseLevel("loud")
 
-	c.Assert(err, qt.ErrorMatches, `invalid log level "loud" \(expected one of: trace, debug, info, warn, error\)`)
+	c.Assert(err, qt.ErrorMatches, `invalid log level "loud" \(expected one of: trace, debug, info, warn \(warning\), error\)`)
 }
 
 func TestLoggerFiltersByLevel(t *testing.T) {

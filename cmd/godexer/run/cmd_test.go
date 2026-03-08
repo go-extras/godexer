@@ -101,6 +101,7 @@ func TestRunCmd_HelpIncludesLogLevelFlag(t *testing.T) {
 	c.Assert(strings.Contains(help, "--log-level string"), qt.IsTrue)
 	c.Assert(strings.Contains(help, "warn/warning"), qt.IsTrue)
 	c.Assert(strings.Contains(help, "Overrides legacy -q/--quiet and -v/--verbose"), qt.IsTrue)
+	c.Assert(strings.Contains(help, "wins over --quiet when both are set"), qt.IsTrue)
 }
 
 func TestRunCmd_LogLevelControlsRuntimeLogger(t *testing.T) {
@@ -179,7 +180,7 @@ func TestRunCmd_InvalidLogLevel(t *testing.T) {
 	var exitErr *shared.ExitError
 	c.Assert(errors.As(err, &exitErr), qt.IsTrue)
 	c.Assert(exitErr.Code, qt.Equals, 3)
-	c.Assert(exitErr.Error(), qt.Matches, `--log-level: invalid log level "loud" \(expected one of: trace, debug, info, warn, error\)`)
+	c.Assert(exitErr.Error(), qt.Matches, `--log-level: invalid log level "loud" \(expected one of: trace, debug, info, warn \(warning\), error\)`)
 }
 
 func TestRunCmd_VarFlagInvalidFormat(t *testing.T) {
