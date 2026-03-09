@@ -55,6 +55,25 @@ func TestSubExecute(t *testing.T) {
 		c.Assert(memlog.String(), qt.Equals, "Some kind of test\nAnother kind of test\n")
 	})
 
+	t.Run("Execute_OmitsNilMeta", func(t *testing.T) {
+		c := qt.New(t)
+
+		cmd := godexer.NewSubExecuteCommand(&godexer.ExecutorContext{})
+		ex := cmd.(*godexer.SubExecuteCommand)
+		ex.RawCommands = []json.RawMessage{[]byte(`{"type":"message"}`)}
+
+		script, err := json.Marshal(struct {
+			Meta     *godexer.RawScenarioMeta `json:"meta,omitempty"`
+			Commands []json.RawMessage        `json:"commands"`
+		}{
+			Meta:     ex.RawMeta,
+			Commands: ex.RawCommands,
+		})
+
+		c.Assert(err, qt.IsNil)
+		c.Assert(string(script), qt.Equals, `{"commands":[{"type":"message"}]}`)
+	})
+
 	t.Run("Execute_MissingExecutor", func(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()

@@ -14,6 +14,7 @@ import (
 	"github.com/go-extras/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
+	"gopkg.in/Knetic/govaluate.v2"
 
 	"github.com/go-extras/godexer"
 	"github.com/go-extras/godexer/internal/testutils"
@@ -109,6 +110,16 @@ const executorExecuteScript = `commands:
 `
 
 func TestExecutor(t *testing.T) {
+	newEvaluatorScenario := func() string {
+		return `
+commands:
+  - type: message
+    stepName: step_one
+    description: Test call one
+    requires: 'test("foo") == "bar"'
+`
+	}
+
 	t.Run("Execute", func(t *testing.T) {
 		c := qt.New(t)
 		// init stuff to load the executor
@@ -186,20 +197,14 @@ Executing: xxx
 foo!`)
 	})
 
-	t.Run("WithEvaluatorFunction", func(t *testing.T) {
+	t.Run("WithRegisteredEvaluatorFunction", func(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()
 		stdout := &bytes.Buffer{}
 		stderr := &bytes.Buffer{}
 		hooksAfter := make(godexer.HooksAfter)
 
-		cmds := `
-commands:
-  - type: message
-    stepName: step_skip_one
-    description: Test call one
-    requires: 'test("foo") == "bar"'
-`
+		cmds := newEvaluatorScenario()
 
 		logout := logrus.StandardLogger().Out
 		logformatter := logrus.StandardLogger().Formatter
@@ -218,12 +223,142 @@ commands:
 			godexer.WithStdout(stdout),
 			godexer.WithStderr(stderr),
 			godexer.WithFS(fs),
+			godexer.WithRegisteredEvaluatorFunction("test", func(args ...any) (any, error) {
+				if args[0].(string) == "foo" {
+					return "bar", nil
+				}
+
+				return "", nil
+			}),
+			godexer.WithLogger(logrus.StandardLogger()),
+		)
+
+		c.Assert(err, qt.IsNil)
+		c.Assert(exc, qt.IsNotNil)
+
+		_ = exc.Execute(vars)
+		d, _ := io.ReadAll(stdout)
+		c.Assert(string(d), qt.Equals, "Test call one\n")
+	})
+
+	t.Run("WithRegisteredEvaluatorFunctions", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		hooksAfter := make(godexer.HooksAfter)
+
+		logout := logrus.StandardLogger().Out
+		logformatter := logrus.StandardLogger().Formatter
+		logrus.SetOutput(stdout)
+		logrus.SetFormatter(&testutils.SimpleFormatter{})
+		defer func() {
+			logrus.SetOutput(logout)
+			logrus.SetFormatter(logformatter)
+		}()
+
+		vars := make(map[string]any)
+
+		exc, err := godexer.NewWithScenario(
+			newEvaluatorScenario(),
+			godexer.WithHooksAfter(hooksAfter),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(fs),
+			godexer.WithRegisteredEvaluatorFunctions(map[string]godexer.EvaluatorFunction{
+				"test": func(args ...any) (any, error) {
+					if args[0].(string) == "foo" {
+						return "bar", nil
+					}
+
+					return "", nil
+				},
+			}),
+			godexer.WithLogger(logrus.StandardLogger()),
+		)
+
+		c.Assert(err, qt.IsNil)
+		c.Assert(exc, qt.IsNotNil)
+
+		_ = exc.Execute(vars)
+		d, _ := io.ReadAll(stdout)
+		c.Assert(string(d), qt.Equals, "Test call one\n")
+	})
+
+	t.Run("WithEvaluatorFunction_Compatibility", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		hooksAfter := make(godexer.HooksAfter)
+
+		logout := logrus.StandardLogger().Out
+		logformatter := logrus.StandardLogger().Formatter
+		logrus.SetOutput(stdout)
+		logrus.SetFormatter(&testutils.SimpleFormatter{})
+		defer func() {
+			logrus.SetOutput(logout)
+			logrus.SetFormatter(logformatter)
+		}()
+
+		vars := make(map[string]any)
+
+		exc, err := godexer.NewWithScenario(
+			newEvaluatorScenario(),
+			godexer.WithHooksAfter(hooksAfter),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(fs),
 			godexer.WithEvaluatorFunction("test", func(args ...any) (any, error) {
 				if args[0].(string) == "foo" {
 					return "bar", nil
 				}
 
 				return "", nil
+			}),
+			godexer.WithLogger(logrus.StandardLogger()),
+		)
+
+		c.Assert(err, qt.IsNil)
+		c.Assert(exc, qt.IsNotNil)
+
+		_ = exc.Execute(vars)
+		d, _ := io.ReadAll(stdout)
+		c.Assert(string(d), qt.Equals, "Test call one\n")
+	})
+
+	t.Run("WithEvaluatorFunctions_Compatibility", func(t *testing.T) {
+		c := qt.New(t)
+		fs := afero.NewMemMapFs()
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		hooksAfter := make(godexer.HooksAfter)
+
+		logout := logrus.StandardLogger().Out
+		logformatter := logrus.StandardLogger().Formatter
+		logrus.SetOutput(stdout)
+		logrus.SetFormatter(&testutils.SimpleFormatter{})
+		defer func() {
+			logrus.SetOutput(logout)
+			logrus.SetFormatter(logformatter)
+		}()
+
+		vars := make(map[string]any)
+
+		exc, err := godexer.NewWithScenario(
+			newEvaluatorScenario(),
+			godexer.WithHooksAfter(hooksAfter),
+			godexer.WithStdout(stdout),
+			godexer.WithStderr(stderr),
+			godexer.WithFS(fs),
+			godexer.WithEvaluatorFunctions(map[string]govaluate.ExpressionFunction{
+				"test": func(args ...any) (any, error) {
+					if args[0].(string) == "foo" {
+						return "bar", nil
+					}
+
+					return "", nil
+				},
 			}),
 			godexer.WithLogger(logrus.StandardLogger()),
 		)
@@ -274,6 +409,64 @@ commands:
 
 		err = exc.Execute(vars)
 		c.Assert(errors.Cause(err), qt.ErrorMatches, "Cannot transition token types from VARIABLE \\[strlen\\] to CLAUSE \\[40\\]")
+	})
+
+	t.Run("Execute_DefaultRequiresUsesGovaluate", func(t *testing.T) {
+		c := qt.New(t)
+		vars := map[string]any{"var1": "foo"}
+
+		exc, err := godexer.NewWithScenario(`commands:
+  - type: variable
+    stepName: set_with_legacy_requires
+    variable: matched
+    value: legacy
+    requires: 'var1 =~ "^fo+$"'
+`)
+		c.Assert(err, qt.IsNil)
+
+		err = exc.Execute(vars)
+		c.Assert(err, qt.IsNil)
+		c.Assert(vars["matched"], qt.Equals, "legacy")
+	})
+
+	t.Run("Execute_ExprExperimentUsesExpr", func(t *testing.T) {
+		c := qt.New(t)
+		vars := map[string]any{"var1": "foo"}
+
+		exc, err := godexer.NewWithScenario(`meta:
+  experiments:
+    - expr
+commands:
+  - type: variable
+    stepName: set_with_expr_requires
+    variable: matched
+    value: expr
+    requires: 'var1 matches "^fo+$"'
+`)
+		c.Assert(err, qt.IsNil)
+
+		err = exc.Execute(vars)
+		c.Assert(err, qt.IsNil)
+		c.Assert(vars["matched"], qt.Equals, "expr")
+	})
+
+	t.Run("Execute_ExprRequiresStillEnforcesBoolResult", func(t *testing.T) {
+		c := qt.New(t)
+
+		exc, err := godexer.NewWithScenario(`meta:
+  experiments:
+    - expr
+commands:
+  - type: message
+    stepName: invalid_requires_type
+    description: should not run
+    requires: '1 + 1'
+`)
+		c.Assert(err, qt.IsNil)
+
+		err = exc.Execute(make(map[string]any))
+		c.Assert(err, qt.IsNotNil)
+		c.Assert(errors.Cause(err), qt.ErrorMatches, "Requires return type must be bool, got int")
 	})
 
 	t.Run("Execute_InvalidCommandType", func(t *testing.T) {

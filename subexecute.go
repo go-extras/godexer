@@ -15,6 +15,7 @@ func init() {
 // one of the possible usages is an implementation of an include command
 type SubExecuteCommand struct {
 	BaseCommand
+	RawMeta     *RawScenarioMeta  `json:"meta,omitempty"`
 	RawCommands []json.RawMessage `json:"commands"`
 }
 
@@ -32,8 +33,10 @@ func (r *SubExecuteCommand) Execute(variables map[string]any) error {
 	}
 
 	cmdScriptObj := struct {
-		Commands any `json:"commands"`
+		Meta     *RawScenarioMeta  `json:"meta,omitempty"`
+		Commands []json.RawMessage `json:"commands"`
 	}{}
+	cmdScriptObj.Meta = r.RawMeta
 	cmdScriptObj.Commands = r.RawCommands
 	script, err := json.Marshal(cmdScriptObj)
 	if err != nil {
