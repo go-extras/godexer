@@ -122,6 +122,16 @@ Add version comparison helpers:
 ex, _ := godexer.NewWithScenario(scn, godexer.WithDefaultEvaluatorFunctions(), version.WithVersionFuncs())
 ```
 
+Register a custom evaluator function without depending on `govaluate` types:
+
+```go
+ex, _ := godexer.NewWithScenario(scn,
+	godexer.WithRegisteredEvaluatorFunction("custom_check", func(args ...any) (any, error) {
+		return len(args) == 1, nil
+	}),
+)
+```
+
 SSH commands (exec, scp writefile):
 
 ```go

@@ -81,6 +81,7 @@ func (r *IncludeCommand) Execute(variables map[string]any) error {
 		return errors.Wrapf(err, "failed to unmarshal script %q in %q", filename, r.StepName)
 	}
 
+	r.RawMeta = cmds.Meta
 	r.RawCommands = cmds.Commands
 
 	var vars map[string]any

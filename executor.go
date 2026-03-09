@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/go-extras/errors"
@@ -14,6 +15,8 @@ import (
 
 	"github.com/go-extras/godexer/internal/logger"
 )
+
+const experimentExpr = "expr"
 
 type BeforeCommandExecuteCallback func(command Command, variables map[string]any)
 
@@ -148,15 +151,27 @@ type ExecutorContext struct {
 	Logger   Logger
 }
 
+// RawScenario describes a top-level YAML/JSON scenario document.
+//
+// Supported shape:
+//   - `commands: [...]`
+//   - optional `meta.experiments: ["expr", "-expr"]`
 type RawScenario struct {
+	Meta     *RawScenarioMeta  `json:"meta,omitempty"`
 	Commands []json.RawMessage `json:"commands"`
+}
+
+// RawScenarioMeta contains top-level scenario metadata.
+type RawScenarioMeta struct {
+	Experiments []string `json:"experiments,omitempty"`
 }
 
 type Executor struct {
 	ectx                         *ExecutorContext
 	commands                     []Command
 	hooksAfter                   HooksAfter
-	evaluatorFunctions           map[string]govaluate.ExpressionFunction
+	experiments                  map[string]bool
+	evaluatorFunctions           evaluatorFunctionRegistry
 	commandTypes                 map[string]func(ectx *ExecutorContext) Command
 	beforeCommandExecuteCallback BeforeCommandExecuteCallback
 	stepNameSuffix               string
@@ -173,7 +188,8 @@ func New(opts ...Option) *Executor {
 	}
 	ex := &Executor{
 		ectx:                         ectx,
-		evaluatorFunctions:           make(map[string]govaluate.ExpressionFunction),
+		experiments:                  make(map[string]bool),
+		evaluatorFunctions:           newEvaluatorFunctionRegistry(),
 		beforeCommandExecuteCallback: func(Command, map[string]any) {},
 		hooksAfter:                   make(HooksAfter),
 		commandTypes:                 registeredCommands,
@@ -252,17 +268,9 @@ func WithLogger(log Logger) func(ex *Executor) {
 	}
 }
 
-func WithEvaluatorFunction(name string, fn govaluate.ExpressionFunction) func(ex *Executor) {
+func withExperiments(experiments map[string]bool) func(ex *Executor) {
 	return func(ex *Executor) {
-		ex.RegisterEvaluatorFunction(name, fn)
-	}
-}
-
-func WithEvaluatorFunctions(funcs map[string]govaluate.ExpressionFunction) func(ex *Executor) {
-	return func(ex *Executor) {
-		for name, fn := range funcs {
-			ex.RegisterEvaluatorFunction(name, fn)
-		}
+		ex.experiments = copyExperiments(experiments)
 	}
 }
 
@@ -315,6 +323,8 @@ func (ex *Executor) AppendScenario(scenario string) error {
 	if err != nil {
 		return err
 	}
+
+	ex.applyScenarioMeta(cmds.Meta)
 
 	for id, rawCmd := range cmds.Commands {
 		var tq struct{ Type string }
@@ -398,7 +408,8 @@ func (ex *Executor) WithScenario(scenario string, opts ...Option) (*Executor, er
 		WithFS(ex.ectx.Fs),
 		WithCommandTypes(ex.commandTypes),
 		WithLogger(ex.ectx.Logger),
-		WithEvaluatorFunctions(ex.evaluatorFunctions),
+		withExperiments(ex.experiments),
+		WithRegisteredEvaluatorFunctions(ex.evaluatorFunctions.clone()),
 	}
 	newOpts = append(newOpts, opts...)
 	result, err := NewWithScenario(scenario, newOpts...)
@@ -417,7 +428,8 @@ func (ex *Executor) WithCommands(cmds []Command, opts ...Option) *Executor {
 		WithFS(ex.ectx.Fs),
 		WithCommandTypes(ex.commandTypes),
 		WithLogger(ex.ectx.Logger),
-		WithEvaluatorFunctions(ex.evaluatorFunctions),
+		withExperiments(ex.experiments),
+		WithRegisteredEvaluatorFunctions(ex.evaluatorFunctions.clone()),
 	}
 	newOpts = append(newOpts, opts...)
 	result := New(newOpts...)
@@ -438,10 +450,68 @@ func (ex *Executor) CommandTypeFn(typ string) (func(ectx *ExecutorContext) Comma
 }
 
 // RegisterEvaluatorFunction registers an evaluator function.
-// The function must follow the signature: `func(args ...any) (any, error)`.
-func (ex *Executor) RegisterEvaluatorFunction(name string, fn func(args ...any) (any, error)) *Executor {
-	ex.evaluatorFunctions[name] = fn
+func (ex *Executor) RegisterEvaluatorFunction(name string, fn EvaluatorFunction) *Executor {
+	ex.evaluatorFunctions.register(name, fn)
 	return ex
+}
+
+// RegisterEvaluatorFunctions registers evaluator functions.
+func (ex *Executor) RegisterEvaluatorFunctions(funcs map[string]EvaluatorFunction) *Executor {
+	ex.evaluatorFunctions.registerAll(funcs)
+	return ex
+}
+
+func (ex *Executor) experimentEnabled(name string) bool {
+	if ex == nil {
+		return false
+	}
+
+	return ex.experiments[name]
+}
+
+func (ex *Executor) applyScenarioMeta(meta *RawScenarioMeta) {
+	if meta == nil {
+		return
+	}
+
+	for _, flag := range meta.Experiments {
+		name, enabled := parseExperimentFlag(flag)
+		if !isKnownExperiment(name) {
+			ex.ectx.Logger.Warnf("unknown experiment %q", name)
+			continue
+		}
+		ex.experiments[name] = enabled
+	}
+}
+
+func copyExperiments(experiments map[string]bool) map[string]bool {
+	if len(experiments) == 0 {
+		return make(map[string]bool)
+	}
+
+	result := make(map[string]bool, len(experiments))
+	for name, enabled := range experiments {
+		result[name] = enabled
+	}
+	return result
+}
+
+func parseExperimentFlag(flag string) (name string, enabled bool) {
+	trimmed := strings.TrimSpace(flag)
+	if strings.HasPrefix(trimmed, "-") {
+		return strings.TrimSpace(strings.TrimPrefix(trimmed, "-")), false
+	}
+
+	return trimmed, true
+}
+
+func isKnownExperiment(name string) bool {
+	switch name {
+	case experimentExpr:
+		return true
+	default:
+		return false
+	}
 }
 
 func (ex *Executor) checkRequires(cmd Command, variables map[string]any) (skip bool, err error) {
@@ -450,7 +520,7 @@ func (ex *Executor) checkRequires(cmd Command, variables map[string]any) (skip b
 		return false, nil
 	}
 
-	expression, err := govaluate.NewEvaluableExpressionWithFunctions(reqs, ex.evaluatorFunctions)
+	expression, err := govaluate.NewEvaluableExpressionWithFunctions(reqs, ex.evaluatorFunctions.govaluateFunctions())
 	if err != nil {
 		return false, err
 	}
