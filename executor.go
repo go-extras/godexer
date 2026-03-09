@@ -9,6 +9,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/expr-lang/expr"
 	"github.com/go-extras/errors"
 	"github.com/spf13/afero"
 	"gopkg.in/Knetic/govaluate.v2"
@@ -520,12 +521,7 @@ func (ex *Executor) checkRequires(cmd Command, variables map[string]any) (skip b
 		return false, nil
 	}
 
-	expression, err := govaluate.NewEvaluableExpressionWithFunctions(reqs, ex.evaluatorFunctions.govaluateFunctions())
-	if err != nil {
-		return false, err
-	}
-
-	reqresi, err := expression.Evaluate(variables)
+	reqresi, err := ex.evaluateRequires(reqs, variables)
 	if err != nil {
 		return false, err
 	}
@@ -542,4 +538,37 @@ func (ex *Executor) checkRequires(cmd Command, variables map[string]any) (skip b
 	}
 
 	return false, nil
+}
+
+func (ex *Executor) evaluateRequires(reqs string, variables map[string]any) (any, error) {
+	if ex.experimentEnabled(experimentExpr) {
+		return ex.evaluateRequiresExpr(reqs, variables)
+	}
+
+	return ex.evaluateRequiresGovaluate(reqs, variables)
+}
+
+func (ex *Executor) evaluateRequiresGovaluate(reqs string, variables map[string]any) (any, error) {
+	expression, err := govaluate.NewEvaluableExpressionWithFunctions(reqs, ex.evaluatorFunctions.govaluateFunctions())
+	if err != nil {
+		return nil, err
+	}
+
+	return expression.Evaluate(variables)
+}
+
+func (ex *Executor) evaluateRequiresExpr(reqs string, variables map[string]any) (any, error) {
+	options := []expr.Option{
+		expr.Env(map[string]any{}),
+		expr.AllowUndefinedVariables(),
+		expr.DisableAllBuiltins(),
+	}
+	options = append(options, ex.evaluatorFunctions.exprOptions()...)
+
+	program, err := expr.Compile(reqs, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return expr.Run(program, variables)
 }

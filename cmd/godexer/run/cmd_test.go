@@ -34,6 +34,15 @@ const varScenario = `commands:
     value: "{{ index . \"name\" }}"
 `
 
+const exprRequiresScenario = `meta:
+  experiments:
+    - expr
+commands:
+  - type: message
+    description: expr hello
+    requires: 'name matches "^wor"'
+`
+
 // writeTempFile creates a temp file with the given content, cleaned up after the test.
 func writeTempFile(t *testing.T, content string) string {
 	t.Helper()
@@ -161,6 +170,20 @@ func TestRunCmd_VarFlag(t *testing.T) {
 
 	err := cmd.Cmd().Execute()
 	c.Assert(err, qt.IsNil)
+}
+
+func TestRunCmd_ExprExperimentRequires(t *testing.T) {
+	c := qt.New(t)
+
+	f := writeTempFile(t, exprRequiresScenario)
+	cmd := newRunCmd()
+	var stderr bytes.Buffer
+	cmd.Cmd().SetErr(&stderr)
+	cmd.Cmd().SetArgs([]string{"--log-level", "info", "--var", "name=world", f})
+
+	err := cmd.Cmd().Execute()
+	c.Assert(err, qt.IsNil)
+	c.Assert(strings.Contains(stderr.String(), "expr hello"), qt.IsTrue)
 }
 
 func TestRunCmd_InvalidLogLevel(t *testing.T) {

@@ -226,3 +226,65 @@ commands:
 	c.Assert(err, qt.IsNil)
 	c.Assert(variables["child_expr"], qt.Equals, false)
 }
+
+func TestScenarioMetadataRequiresEvaluationInheritanceAndOverride(t *testing.T) {
+	c := qt.New(t)
+	logger, _ := newScenarioMetadataLogger()
+
+	ex, err := NewWithScenario(`meta:
+  experiments:
+    - expr
+commands:
+  - type: commands
+    commands:
+      - type: variable
+        variable: inherited_expr
+        value: inherited
+        requires: 'name matches "^wor"'
+  - type: commands
+    meta:
+      experiments:
+        - "-expr"
+    commands:
+      - type: variable
+        variable: opted_out_expr
+        value: legacy
+        requires: 'name =~ "^wor"'
+`, WithLogger(logger))
+
+	c.Assert(err, qt.IsNil)
+
+	variables := map[string]any{"name": "world"}
+	err = ex.Execute(variables)
+
+	c.Assert(err, qt.IsNil)
+	c.Assert(variables["inherited_expr"], qt.Equals, "inherited")
+	c.Assert(variables["opted_out_expr"], qt.Equals, "legacy")
+}
+
+func TestScenarioMetadataWithCommandsPreservesExperimentsAndEvaluators(t *testing.T) {
+	c := qt.New(t)
+	logger, _ := newScenarioMetadataLogger()
+
+	parent, err := NewWithScenario(`meta:
+  experiments:
+    - expr
+commands:
+  - type: variable
+    variable: cloned_result
+    value: ok
+    requires: 'echo("world") matches "^wor"'
+`, WithLogger(logger), WithRegisteredEvaluatorFunction("echo", func(args ...any) (any, error) {
+		return args[0], nil
+	}))
+
+	c.Assert(err, qt.IsNil)
+
+	child := parent.WithCommands(parent.commands)
+	variables := make(map[string]any)
+	err = child.Execute(variables)
+
+	c.Assert(child.experimentEnabled(experimentExpr), qt.Equals, true)
+	c.Assert(err, qt.IsNil)
+	c.Assert(variables["cloned_result"], qt.Equals, "ok")
+}

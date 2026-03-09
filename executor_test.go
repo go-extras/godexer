@@ -411,6 +411,64 @@ commands:
 		c.Assert(errors.Cause(err), qt.ErrorMatches, "Cannot transition token types from VARIABLE \\[strlen\\] to CLAUSE \\[40\\]")
 	})
 
+	t.Run("Execute_DefaultRequiresUsesGovaluate", func(t *testing.T) {
+		c := qt.New(t)
+		vars := map[string]any{"var1": "foo"}
+
+		exc, err := godexer.NewWithScenario(`commands:
+  - type: variable
+    stepName: set_with_legacy_requires
+    variable: matched
+    value: legacy
+    requires: 'var1 =~ "^fo+$"'
+`)
+		c.Assert(err, qt.IsNil)
+
+		err = exc.Execute(vars)
+		c.Assert(err, qt.IsNil)
+		c.Assert(vars["matched"], qt.Equals, "legacy")
+	})
+
+	t.Run("Execute_ExprExperimentUsesExpr", func(t *testing.T) {
+		c := qt.New(t)
+		vars := map[string]any{"var1": "foo"}
+
+		exc, err := godexer.NewWithScenario(`meta:
+  experiments:
+    - expr
+commands:
+  - type: variable
+    stepName: set_with_expr_requires
+    variable: matched
+    value: expr
+    requires: 'var1 matches "^fo+$"'
+`)
+		c.Assert(err, qt.IsNil)
+
+		err = exc.Execute(vars)
+		c.Assert(err, qt.IsNil)
+		c.Assert(vars["matched"], qt.Equals, "expr")
+	})
+
+	t.Run("Execute_ExprRequiresStillEnforcesBoolResult", func(t *testing.T) {
+		c := qt.New(t)
+
+		exc, err := godexer.NewWithScenario(`meta:
+  experiments:
+    - expr
+commands:
+  - type: message
+    stepName: invalid_requires_type
+    description: should not run
+    requires: '1 + 1'
+`)
+		c.Assert(err, qt.IsNil)
+
+		err = exc.Execute(make(map[string]any))
+		c.Assert(err, qt.IsNotNil)
+		c.Assert(errors.Cause(err), qt.ErrorMatches, "Requires return type must be bool, got int")
+	})
+
 	t.Run("Execute_InvalidCommandType", func(t *testing.T) {
 		c := qt.New(t)
 		fs := afero.NewMemMapFs()

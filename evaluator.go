@@ -1,6 +1,9 @@
 package godexer
 
-import "gopkg.in/Knetic/govaluate.v2"
+import (
+	"github.com/expr-lang/expr"
+	"gopkg.in/Knetic/govaluate.v2"
+)
 
 // EvaluatorFunction is the signature for functions available inside `requires:` expressions.
 type EvaluatorFunction = func(args ...any) (any, error)
@@ -43,6 +46,14 @@ func (r evaluatorFunctionRegistry) govaluateFunctions() map[string]govaluate.Exp
 	result := make(map[string]govaluate.ExpressionFunction, len(r))
 	for name, fn := range r {
 		result[name] = fn
+	}
+	return result
+}
+
+func (r evaluatorFunctionRegistry) exprOptions() []expr.Option {
+	result := make([]expr.Option, 0, len(r))
+	for name, fn := range r {
+		result = append(result, expr.Function(name, fn))
 	}
 	return result
 }
