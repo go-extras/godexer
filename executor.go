@@ -173,6 +173,7 @@ type Executor struct {
 	hooksAfter                   HooksAfter
 	experiments                  map[string]bool
 	evaluatorFunctions           evaluatorFunctionRegistry
+	govaluateEvaluatorFunctions  map[string]govaluate.ExpressionFunction
 	commandTypes                 map[string]func(ectx *ExecutorContext) Command
 	beforeCommandExecuteCallback BeforeCommandExecuteCallback
 	stepNameSuffix               string
@@ -453,13 +454,19 @@ func (ex *Executor) CommandTypeFn(typ string) (func(ectx *ExecutorContext) Comma
 // RegisterEvaluatorFunction registers an evaluator function.
 func (ex *Executor) RegisterEvaluatorFunction(name string, fn EvaluatorFunction) *Executor {
 	ex.evaluatorFunctions.register(name, fn)
+	ex.rebuildGovaluateEvaluatorFunctionCache()
 	return ex
 }
 
 // RegisterEvaluatorFunctions registers evaluator functions.
 func (ex *Executor) RegisterEvaluatorFunctions(funcs map[string]EvaluatorFunction) *Executor {
 	ex.evaluatorFunctions.registerAll(funcs)
+	ex.rebuildGovaluateEvaluatorFunctionCache()
 	return ex
+}
+
+func (ex *Executor) rebuildGovaluateEvaluatorFunctionCache() {
+	ex.govaluateEvaluatorFunctions = ex.evaluatorFunctions.govaluateFunctions()
 }
 
 func (ex *Executor) experimentEnabled(name string) bool {
@@ -549,7 +556,7 @@ func (ex *Executor) evaluateRequires(reqs string, variables map[string]any) (any
 }
 
 func (ex *Executor) evaluateRequiresGovaluate(reqs string, variables map[string]any) (any, error) {
-	expression, err := govaluate.NewEvaluableExpressionWithFunctions(reqs, ex.evaluatorFunctions.govaluateFunctions())
+	expression, err := govaluate.NewEvaluableExpressionWithFunctions(reqs, ex.govaluateEvaluatorFunctions)
 	if err != nil {
 		return nil, err
 	}

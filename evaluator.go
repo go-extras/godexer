@@ -76,6 +76,7 @@ func WithRegisteredEvaluatorFunctions(funcs map[string]EvaluatorFunction) func(e
 func WithEvaluatorFunction(name string, fn govaluate.ExpressionFunction) func(ex *Executor) {
 	return func(ex *Executor) {
 		ex.evaluatorFunctions.registerLegacy(name, fn)
+		ex.rebuildGovaluateEvaluatorFunctionCache()
 	}
 }
 
@@ -83,5 +84,6 @@ func WithEvaluatorFunction(name string, fn govaluate.ExpressionFunction) func(ex
 func WithEvaluatorFunctions(funcs map[string]govaluate.ExpressionFunction) func(ex *Executor) {
 	return func(ex *Executor) {
 		ex.evaluatorFunctions.registerLegacyAll(funcs)
+		ex.rebuildGovaluateEvaluatorFunctionCache()
 	}
 }

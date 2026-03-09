@@ -33,8 +33,8 @@ func (r *SubExecuteCommand) Execute(variables map[string]any) error {
 	}
 
 	cmdScriptObj := struct {
-		Meta     any `json:"meta,omitempty"`
-		Commands any `json:"commands"`
+		Meta     *RawScenarioMeta  `json:"meta,omitempty"`
+		Commands []json.RawMessage `json:"commands"`
 	}{}
 	cmdScriptObj.Meta = r.RawMeta
 	cmdScriptObj.Commands = r.RawCommands
