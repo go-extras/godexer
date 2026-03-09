@@ -17,6 +17,7 @@ require (
 )
 
 require (
+	github.com/expr-lang/expr v1.17.8 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
