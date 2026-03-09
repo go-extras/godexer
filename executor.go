@@ -484,6 +484,10 @@ func (ex *Executor) applyScenarioMeta(meta *RawScenarioMeta) {
 
 	for _, flag := range meta.Experiments {
 		name, enabled := parseExperimentFlag(flag)
+		if name == "" {
+			continue
+		}
+
 		if !isKnownExperiment(name) {
 			ex.ectx.Logger.Warnf("unknown experiment %q", name)
 			continue
@@ -566,7 +570,7 @@ func (ex *Executor) evaluateRequiresGovaluate(reqs string, variables map[string]
 
 func (ex *Executor) evaluateRequiresExpr(reqs string, variables map[string]any) (any, error) {
 	options := []expr.Option{
-		expr.Env(map[string]any{}),
+		expr.Env(make(map[string]any)),
 		expr.AllowUndefinedVariables(),
 		expr.DisableAllBuiltins(),
 	}

@@ -90,18 +90,13 @@ func TestScenarioMetadataWarnsOnUnknownExperiments(t *testing.T) {
 	c := qt.New(t)
 	logger, logbuf := newScenarioMetadataLogger()
 
-	ex, err := NewWithScenario(`meta:
-  experiments:
-    - expr
-    - typo
-    - "-future"
-commands: []
-`, WithLogger(logger))
+	ex, err := NewWithScenario(`{"meta":{"experiments":["expr",null," ","-  ","typo","-future"]},"commands":[]}`, WithLogger(logger))
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(ex.experimentEnabled(experimentExpr), qt.Equals, true)
 	c.Assert(strings.Contains(logbuf.String(), `unknown experiment "typo"`), qt.IsTrue)
 	c.Assert(strings.Contains(logbuf.String(), `unknown experiment "future"`), qt.IsTrue)
+	c.Assert(strings.Contains(logbuf.String(), `unknown experiment ""`), qt.Equals, false)
 }
 
 func TestScenarioMetadataWithScenarioInheritance(t *testing.T) {

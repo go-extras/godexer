@@ -18,7 +18,7 @@ func TestExecutorGovaluateEvaluatorFunctionCacheUpdatesOnRegister(t *testing.T) 
 		return true, nil
 	}))(ex)
 
-	result, err := ex.evaluateRequiresGovaluate("registered() && legacy()", map[string]any{})
+	result, err := ex.evaluateRequiresGovaluate("registered() && legacy()", make(map[string]any))
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(result, qt.Equals, true)
