@@ -12,7 +12,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/crypto v0.49.0
+	golang.org/x/crypto v0.50.0
 	gopkg.in/Knetic/govaluate.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.1
 )
