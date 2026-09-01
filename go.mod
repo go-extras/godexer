@@ -3,7 +3,7 @@ module github.com/go-extras/godexer
 go 1.25.3
 
 require (
-	al.essio.dev/pkg/shellescape v1.6.0
+	al.essio.dev/pkg/shellescape v1.6.1
 	github.com/expr-lang/expr v1.17.8
 	github.com/frankban/quicktest v1.14.6
 	github.com/ghodss/yaml v1.0.0
